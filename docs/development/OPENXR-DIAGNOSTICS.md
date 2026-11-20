@@ -27,8 +27,12 @@ copies RGB/alpha rather than multiplying RGB again, and does not request colour
 keying. There is no justified flag flip to copy from Venture at this point.
 The important remaining differences are the actual game's output/shader alpha,
 OpenVR source colour-space declaration, D3D11/MSAA/copy path, and the installed
-SteamVR/Steam Link processing. Venture's correct result does not prove that
-Battles produces the same input pixels. No Venture checkout was modified.
+SteamVR/Steam Link processing. The initial report of correct Venture output did
+not establish that Battles produces the same input pixels. The maintainer subsequently corrected
+that comparison: similar cloud artefacts are also visible in Venture's native
+path, unlike the companion. The referenced screenshots were not yet available
+in this checkout/conversation, so neither their appearance nor the failing
+transport stage has been independently verified. No Venture checkout was modified.
 
 ## Opt-in Battles/Demeo test
 
