@@ -112,6 +112,8 @@ No game process, SteamVR process, service or headset is stopped or started.
 
 The native DLL reads the normal BepInEx config once before its first OpenVR call,
 falling back to supported legacy INI locations only when no normal config exists.
+The install receipt records the selected loader; a MelonLoader installation reads
+its Mods INI instead, even when an old BepInEx config is still present.
 NativePassthrough=false or Backend=LegacyCompanion forwards public API calls to
 the preserved original game DLL. This keeps the old companion and Virtual Desktop
 route available. Runtime selection is process-lifetime state: restart the **game**

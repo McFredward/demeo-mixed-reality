@@ -2,17 +2,18 @@
   "schema": "demeo-opencomposite-build-v1",
   "upstream": "cff07db75c4823afe93ed7027b03d5f7bc86f164",
   "inputs": {
-    "tools/opencomposite/apply.py": "ee71544bce13d9bda57af7a9e7557c98e9ee49393e4d8a7b68b6b3a36441e7e4",
-    "tools/opencomposite/dmr_bridge.cpp": "bbb1729e199bede84cb49bc5b84cbccc3154166c38b55296431571e72b1d7db3",
+    "tools/opencomposite/apply.py": "257b38d5eef00540427c7451ffecd6f291c35ef439edb5b03f6d9604fc59aff8",
+    "tools/opencomposite/dmr_bridge.cpp": "b17812cab925f7df74a0e1b0000d670f953b02ff12257d50685a8b2f4a4c29dc",
     "tools/opencomposite/dmr_bridge.h": "ad6f76a830191962a79cab51643adee821f36849463509279d9cc4481a9a59ef",
     "tools/opencomposite/dmr_fake_original.cpp": "f80c13800f2266182471cb9396c7bf2eabe0765ca3ad18b15b4daef2fc3e333c",
     "tools/opencomposite/dmr_smoke.cpp": "985af243b4a96c6f75318def611edf002680cf6b888abfc9571f5eb30192e775",
     "tools/opencomposite/dmr_state.hpp": "f43e0c0541bc0cf92a454909bc6890f2682565466b839fa000921aeee94a4121",
-    "scripts/build-opencomposite.py": "d25157513f10ae0eb4ca937b7676754e7efe08f910de6d82111d5527103ff57f"
+    "tools/opencomposite/README.md": "f380151da4cafecd2d19ae4da61e392fd837a960f5dff84b416ec1bfcc503d10",
+    "scripts/build-opencomposite.py": "147e5855532adc1eee276e076d51524bc7ad3bb6dc6b139f9b9810402bccb2f3"
   },
-  "binary_sha256": "6fa0d4f08dd8b7db1905a03dd443ad45dea32a21307bce95ab249ccd4274745a",
-  "source_sha256": "ccc634881ac3a93fedf5050a22bddc0bfc132aa326bfd737c1d15ab2b27a0f96",
-  "source_commit": "5f42b26ebba17182c82ddc98cc7d978e91b48cd7",
+  "binary_sha256": "1e7a2bfd6f9915cf5e701558b28863e7bd4b2982b7ecfbd4df2f924cb89bbbb5",
+  "source_sha256": "7cc262fef3d6a456afddce40ccbd107acea9b8dee79c0059594c09e1918fed7e",
+  "source_commit": "7bac74761fd7e5e2648c107d5d6e69651395ee99",
   "dll_smoke_tested": true,
   "headset_tested": false
 }
