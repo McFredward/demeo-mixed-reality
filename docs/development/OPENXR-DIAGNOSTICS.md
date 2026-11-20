@@ -68,6 +68,10 @@ The strip bypasses Unity's materials, post-processing and the OpenComposite sour
 copy. A faulty strip therefore localizes the issue downstream of those stages,
 assuming its logged synthetic pixel checks pass. It does not alone distinguish
 SteamVR composition from encoding, decoding or final Frame composition.
+Cell 4 specifically tests the additive-emission behaviour needed to match our
+companion. Loss of this cell alone is not proof of an incorrect OpenXR flag or a
+runtime conformance bug: it can identify a limitation in preserving zero-coverage
+emission through that path. Keep it distinct from the ordinary opacity controls.
 
 Keep the same scene, view and bitrate for the native/legacy scene comparison.
 Record both eyes if possible. Check the PC SteamVR Camera settings for a separately

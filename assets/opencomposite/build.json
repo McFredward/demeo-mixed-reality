@@ -2,18 +2,23 @@
   "schema": "demeo-opencomposite-build-v1",
   "upstream": "cff07db75c4823afe93ed7027b03d5f7bc86f164",
   "inputs": {
-    "tools/opencomposite/apply.py": "257b38d5eef00540427c7451ffecd6f291c35ef439edb5b03f6d9604fc59aff8",
-    "tools/opencomposite/dmr_bridge.cpp": "b17812cab925f7df74a0e1b0000d670f953b02ff12257d50685a8b2f4a4c29dc",
-    "tools/opencomposite/dmr_bridge.h": "ad6f76a830191962a79cab51643adee821f36849463509279d9cc4481a9a59ef",
+    "tools/opencomposite/apply.py": "33a3751937bb33e164cc10a84b13033492c1412269ff973a017a3dc77f92facd",
+    "tools/opencomposite/dmr_bridge.cpp": "fca39841676e1ce5e0ece721813511587fd0eed86a6a2f994d0af31970f00a1c",
+    "tools/opencomposite/dmr_bridge.h": "a45330c1290566c64f8b8b0a5510148fe54b9593eca93f90d55217276edc0ff6",
+    "tools/opencomposite/dmr_diagnostic_pattern.hpp": "79e7f65b3e829a14ec2182f0a6085cc8cc236452019261ccd2fee7edc639521c",
+    "tools/opencomposite/dmr_diagnostics.cpp": "6fd992d74dba852b7baf5d850d66887bcbd289072cd35c13815852783d785611",
+    "tools/opencomposite/dmr_diagnostics.h": "57af3bc2d33faf0b604f28c86a410b7fc50a2755ec5f336dd0daa5759389de86",
+    "tools/opencomposite/dmr_diagnostics_checks.cpp": "0d4abc459d0720cac0b68e28d8a247b5af062e03b47081786ef2ba37a216cc44",
     "tools/opencomposite/dmr_fake_original.cpp": "f80c13800f2266182471cb9396c7bf2eabe0765ca3ad18b15b4daef2fc3e333c",
     "tools/opencomposite/dmr_smoke.cpp": "985af243b4a96c6f75318def611edf002680cf6b888abfc9571f5eb30192e775",
-    "tools/opencomposite/dmr_state.hpp": "f43e0c0541bc0cf92a454909bc6890f2682565466b839fa000921aeee94a4121",
+    "tools/opencomposite/dmr_state.hpp": "f58e6069e7df5472ad0af0f448380596093b3ed22792fba3ddf420aa47e227bd",
     "tools/opencomposite/README.md": "f380151da4cafecd2d19ae4da61e392fd837a960f5dff84b416ec1bfcc503d10",
-    "scripts/build-opencomposite.py": "147e5855532adc1eee276e076d51524bc7ad3bb6dc6b139f9b9810402bccb2f3"
+    "scripts/build-opencomposite.py": "fb9faf0a553582fad432931cf0a4aeefadfa5ff530cda45f8b10d0f74b1c1184"
   },
-  "binary_sha256": "1e7a2bfd6f9915cf5e701558b28863e7bd4b2982b7ecfbd4df2f924cb89bbbb5",
-  "source_sha256": "7cc262fef3d6a456afddce40ccbd107acea9b8dee79c0059594c09e1918fed7e",
-  "source_commit": "7bac74761fd7e5e2648c107d5d6e69651395ee99",
+  "binary_sha256": "484742ea0d5fc29255fc0706b93141e078d508b157911d3263d68775d77b9f6b",
+  "source_sha256": "1d4d2587a1fd820fd658754b772224b3733947acb8dcd7af3f97a4ad5eb2ccb1",
+  "source_commit": "b09b010ad530fe2b509f72fca8782ab243c5126c",
   "dll_smoke_tested": true,
+  "diagnostic_warp_tested": true,
   "headset_tested": false
 }
