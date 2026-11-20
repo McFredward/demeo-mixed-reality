@@ -83,6 +83,10 @@ Two upstream D3D11 details require corrections for Unity:
 - The MSAA array path resolved every eye to subresource0 but copied the right eye
   from subresource1. Resolve/copy must use the same actual eye subresource, with
   a typed swapchain-compatible resolve format and single-sample quality0.
+- Swapchain compatibility must include the source's MSAA sample count and array
+  size. Otherwise an intro without MSAA followed by an MSAA menu at the same
+  resolution reuses a chain with no resolver textures. Resolver allocation
+  failures must also be checked before use.
 
 These changes retain both array eyes and native sampling/colour encoding. The
 old provider-binary pin, 2D Submit interception and Submit-scoped filter override

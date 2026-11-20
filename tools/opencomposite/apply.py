@@ -116,6 +116,13 @@ VR_INTERFACE bool VR_CALLTYPE VR_GetRuntimePath(char* buffer, uint32_t capacity,
     edit("OpenOVR/Compositor/dx11compositor.cpp", "resDesc.SampleDesc.Count = 1;\n\n\t\t\tresolvedMSAATextures", "resDesc.SampleDesc.Count = 1;\n\t\t\tresDesc.SampleDesc.Quality = 0;\n\t\t\tresDesc.Format = type;\n\n\t\t\tresolvedMSAATextures")
     edit("OpenOVR/Compositor/dx11compositor.cpp", "\t\t\tcontext->ResolveSubresource(resolvedMSAATextures[currentIndex], 0, src, arrayIndex, resDesc.Format);", "\t\t\tconst UINT subresource = D3D11CalcSubresource(0, arrayIndex, srcDesc.MipLevels);\n\t\t\tcontext->ResolveSubresource(resolvedMSAATextures[currentIndex], subresource, src, subresource, static_cast<DXGI_FORMAT>(createInfo.format));")
     edit("OpenOVR/Compositor/dx11compositor.cpp", "0, resolvedMSAATextures[currentIndex], arrayIndex, &sourceRegion);", "0, resolvedMSAATextures[currentIndex], subresource, &sourceRegion);")
+    # A scene can change MSAA/array layout without changing resolution. The
+    # upstream compatibility check ignored samples, leaving an empty resolver
+    # vector when the first source was single-sampled and a later source is not.
+    edit("OpenOVR/Compositor/dx11compositor.h", "\tID3D11Device* device = nullptr;", "\tUINT dmrSourceSamples = 0, dmrSourceArray = 0;\n\tID3D11Device* device = nullptr;")
+    edit("OpenOVR/Compositor/dx11compositor.cpp", '\t\tOOVR_LOG("Generating new swap chain");', '\t\tdmrSourceSamples = srcDesc.SampleDesc.Count;\n\t\tdmrSourceArray = srcDesc.ArraySize;\n\t\tOOVR_LOG("Generating new swap chain");')
+    edit("OpenOVR/Compositor/dx11compositor.cpp", "\tbool usable = true;", "\tbool usable = inputDesc.SampleDesc.Count == dmrSourceSamples && inputDesc.ArraySize == dmrSourceArray;")
+    edit("OpenOVR/Compositor/dx11compositor.cpp", "\t\t\t\tdevice->CreateTexture2D(&resDesc, nullptr, &resolvedMSAATextures[i]);", "\t\t\t\tOOVR_FAILED_DX_ABORT(device->CreateTexture2D(&resDesc, nullptr, &resolvedMSAATextures[i]));")
     # No binary provider settings / per-eye copy adapter is needed on this path.
 
 
