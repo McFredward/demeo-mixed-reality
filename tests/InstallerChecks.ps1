@@ -52,6 +52,7 @@ try {
         $paths[$spec.Name]=$directory
         File (Join-Path $directory (($spec.Data -replace '_Data$','')+'.exe'))
         [void][IO.Directory]::CreateDirectory((Join-Path $directory $spec.Data))
+        if ($spec.Id -ne 'DEMEOBATTLEMARKED') { File (Join-Path $directory ($spec.Data+'/Plugins/x86_64/openvr_api.dll')) ('original-'+$spec.Id) }
         File (Join-Path $library ('steamapps/appmanifest_'+$number+'.acf')) ('"AppState" { "installdir" "Custom '+$spec.Name+'" }')
         File (Join-Path $directory 'BepInEx/core/0Harmony.dll')
         if ($spec.Id -ne 'DEMEO') {

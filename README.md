@@ -34,7 +34,8 @@ matching loader:
 
 1. Start the game once with its loader, then close it.
 2. Download your game's ZIP from [Releases](https://github.com/McFredward/demeo-mixed-reality/releases) and extract it into the folder above.
-3. Start the game in VR. In Demeo and Demeo Battles, turn off the basement environment in the game settings.
+3. **For Steam Frame in Demeo / Demeo Battles:** with the game closed, run the included `Install-OpenXR.ps1` once. It installs the bundled OpenXR adapter and keeps the original OpenVR DLL for legacy mode. Battlemarked already uses OpenXR.
+4. Start the game in VR. In Demeo and Demeo Battles, turn off the basement environment in the game settings.
 
 For automatic installation from this download, install [.NET SDK 8+](https://dotnet.microsoft.com/download/dotnet/8.0), then run PowerShell in the extracted project folder:
 
@@ -43,7 +44,7 @@ For automatic installation from this download, install [.NET SDK 8+](https://dot
 ```
 
 The installer finds installed games and their loaders, builds the matching mods
-and installs them. Existing configuration is preserved. It also supports
+and installs them, including the OpenXR adapter. Existing configuration is preserved. It also supports
 MelonLoader for all three games.
 
 ## Quest + Virtual Desktop (colour replacement)
@@ -51,21 +52,19 @@ MelonLoader for all three games.
 After installing the mod on your PC:
 
 1. Connect your Quest with **Virtual Desktop**, with its Streamer running on the PC, and start the game in VR.
-2. In the [mod config](#settings), set `NativePassthrough=false` and keep the default background: **R=0, G=255, B=0**.
+2. In the [mod config](#settings), set `NativePassthrough=false`, keep **R=0, G=255, B=0**, then restart the game.
 3. In Virtual Desktop's VR menu, enable **Streaming → VR Passthrough** and select the same green. Start with **Similarity 37** and **Smoothness 5**.
 
 ## Steam Frame passthrough
 
-Keep `NativePassthrough=true` and `Backend=Auto` in the [mod config](#settings).
-For **Battlemarked**, use **SteamOS 0.5.8+ beta on Frame** and **SteamVR 2.19.2+
-beta on PC**, with SteamVR as the OpenXR runtime. The mod uses SteamVR's built-in
-alpha blending when supported; no companion is needed for this path.
+Use **SteamOS 0.5.8+ beta on Frame** and **SteamVR 2.19.2+ beta on PC**, with
+SteamVR as the OpenXR runtime. Keep `NativePassthrough=true` and `Backend=Auto`
+in the [mod config](#settings). All three games use native OpenXR passthrough;
+Demeo and Battles use the bundled [OpenComposite](https://gitlab.com/znixian/OpenOVR)
+adapter. No companion is required. The new native path still needs headset testing.
 
-**Demeo / Demeo Battles (OpenVR)** and older runtimes retain the
-[Steam Link Native Passthrough companion](https://github.com/McFredward/steam-link-native-passthrough)
-on PC and Frame. Set `Backend=LegacyCompanion` to select that path explicitly.
-All three games were previously tested with the companion; the new built-in
-path still needs a headset test.
+The old [PC/Frame companion](https://github.com/McFredward/steam-link-native-passthrough)
+remains optional: set `Backend=LegacyCompanion` and restart the game to use it.
 
 Steam Link can use **Auto or a fixed bitrate**. Close **OVR Advanced Settings**
 while playing Demeo; it can cause unwanted recentering.
@@ -75,7 +74,8 @@ while playing Demeo; it can cause unwanted recentering.
 BepInEx uses `BepInEx/config/DemeoMixedReality.cfg`. Existing
 `greenscreen.ini` / `custom_color.ini` settings are imported once; your old files
 are kept. MelonLoader continues to use `greenscreen.ini` beside the mod DLL.
-Changes apply while the game runs.
+Colour and table settings apply live. Restart the game to switch between
+OpenXR and legacy/colour replacement modes.
 
 ```ini
 [COLOR]

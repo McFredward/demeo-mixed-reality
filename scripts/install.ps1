@@ -22,6 +22,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'Install.Helpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'OpenXR.Install.Helpers.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
 $installed = @(Find-DemeoInstallations -SteamLibrary $SteamLibrary -GamePath $GamePath -Game $Game)
 if ($installed.Count -eq 0) {
@@ -43,10 +44,16 @@ try {
         throw 'A compatible .NET SDK 8+ is required; a runtime-only installation cannot build the mods.'
     }
     $plans = @()
+    $nativePayload = $null
     # Complete preflight for every selected game before replacing any DLL.
     foreach ($install in $installed) {
         $spec = $install.Spec
         $resolved = Resolve-DemeoLoaderPaths -Install $install -Loader $Loader
+        $nativePlan = $null
+        if ($spec.Id -ne 'DEMEOBATTLEMARKED') {
+            if (-not $nativePayload) { $nativePayload = Get-DemeoOpenXRPayload (Join-Path $repo 'assets/opencomposite') }
+            $nativePlan = Get-DemeoOpenXRPlan $install $nativePayload
+        }
         $pluginRoot = $resolved.PluginRoot
         $running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
             try { $_.Path -and [IO.Path]::GetFullPath($_.Path) -eq [IO.Path]::GetFullPath($install.Executable) } catch { $false }
@@ -58,7 +65,7 @@ try {
         }
         if ($existing.Count -gt 1) { throw "$($spec.Name): multiple copies of $($spec.Dll) exist. Remove duplicates before updating." }
         $destination = if ($existing.Count -eq 1) { $existing[0].DirectoryName } else { $pluginRoot }
-        $plans += [pscustomobject]@{ Install=$install; Assemblies=$resolved.Assemblies; Loader=$resolved.Loader; Backend=$resolved.Backend; Destination=$destination; PluginRoot=$pluginRoot }
+        $plans += [pscustomobject]@{ Install=$install; Assemblies=$resolved.Assemblies; Loader=$resolved.Loader; Backend=$resolved.Backend; Destination=$destination; PluginRoot=$pluginRoot; NativePlan=$nativePlan }
     }
     foreach ($plan in $plans) {
         $spec = $plan.Install.Spec
@@ -73,6 +80,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "$($spec.Name) build failed; its installed DLL was not replaced." }
         $binary = Join-Path $output $spec.Dll
         if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) { throw "Build did not produce $binary" }
+        if ($plan.NativePlan) { Install-DemeoOpenXRAdapter $plan.NativePlan }
         [void][IO.Directory]::CreateDirectory($plan.Destination)
         $target = Join-Path $plan.Destination $spec.Dll
         $stage = $target + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
@@ -105,6 +113,6 @@ try {
         }
         Write-Host "Installed $target (SHA-256 $((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash))"
         Write-Host "Configuration: $activeConfig"
-        Write-Host 'Frame over Steam Link: Backend=Auto prefers built-in SteamVR OpenXR alpha blending where supported. OpenVR/older runtimes use the legacy PC/Frame companion; Backend=LegacyCompanion selects it explicitly. NativePassthrough=false uses colour replacement. Existing config choices are preserved.'
+        Write-Host 'All games: Backend=Auto uses native OpenXR alpha blending on Frame over Steam Link. Demeo/Battles use the bundled game-local OpenComposite adapter. LegacyCompanion explicitly selects the old PC/Frame companion; restart the game when changing transports. Existing config choices are preserved.'
     }
 } finally { Pop-Location }

@@ -12,14 +12,15 @@ identity and the game's own SteamVR transport. The new `Backend` setting is:
 
 | Value | Selection |
 |---|---|
-| `Auto` (default) | Prefer built-in alpha for OpenXR; fall back to the legacy companion when unsupported or activation fails. Wait during pending activation. |
-| `SteamVR` | Require built-in OpenXR alpha; report refusal without opening the companion source pipe. |
+| `Auto` (default) | Native OpenXR: Unity OpenXR in Battlemarked, bundled game-local OpenComposite in Demeo/Battles. No implicit companion fallback. |
+| `SteamVR` | Require the same native OpenXR alpha path explicitly. |
 | `LegacyCompanion` | Original PC/Frame companion negotiation and submission adapters. |
 
-Battlemarked already runs OpenXR. The supplied Demeo and Demeo Battles builds
-use OpenVR; the new Valve announcement does not establish an equivalent OpenVR
-submission API. These games retain the companion. We do not replace their XR
-loaders, install OpenComposite, or make a global SteamVR camera-setting write.
+Battlemarked already runs OpenXR. Demeo and Demeo Battles retain their Unity
+OpenVR loader but their API calls are translated into OpenXR by the bundled
+OpenComposite adapter. They submit genuine OpenXR projection layers to SteamVR;
+there is no private Steam Link mask stream. See
+[OpenComposite integration](OPENCOMPOSITE.md) for installation, source, ABI and tests.
 All six game/loader builds include the selector. Existing config opt-outs stay
 off; missing `Backend` entries default to Auto and are saved in BepInEx configs.
 Legacy INI import includes the selector and still runs only on first creation.
@@ -47,8 +48,11 @@ The adapter uses Unity's existing `OpenXRFeature.SetEnvironmentBlendMode` and
 the supplied generated IL2CPP API without adding game code to our distribution.
 See [Unity's feature API](https://docs.unity3d.com/Packages/com.unity.xr.openxr@1.16/api/UnityEngine.XR.OpenXR.Features.OpenXRFeature.html).
 Unity queues the mode request: the setter returning is **not** proof of active
-alpha composition. Request once; admit transparency only after a subsequent
-getter reports AlphaBlend (3). A three-second deadline with at least three
+alpha composition. Request once; allow an alpha-only preparation pass with an
+opaque black camera clear before that request reaches frame submission. This
+avoids presenting unprepared game alpha in the first accepted frame. Clear the
+camera transparently only after a subsequent getter reports AlphaBlend (3).
+A three-second deadline with at least three
 pending observations cancels an unaccepted request rather than writing forever.
 
 The lease saves the original mode, restores only its owned selection, cancels
@@ -75,8 +79,9 @@ Opaque objects keep coverage 1; transparent materials retain fractional alpha.
 No new camera, colour-derived mask, global passthrough toggle, foveation override
 or game/controller recenter behavior is introduced by this backend.
 
-Old companion code and its source/frame/eye proofs remain intact. This change
-does not alter PC/Frame patch binaries, install or uninstall a companion, restart
+Old companion code and its source/frame/eye proofs remain intact. The installer
+adds only game-local OpenComposite adapters for the first two games. It does
+not alter PC/Frame patch binaries, install or uninstall a companion, restart
 SteamVR, modify a headset, or touch GloomhavenVR. An existing patched runtime is
 not claimed as a clean validation of Valve's unmodified transport.
 
@@ -108,8 +113,9 @@ Before claiming the new path is headset-tested:
    both eyes. Check solid geometry, translucent effects, fades and Steam overlay.
 4. Toggle NativePassthrough off/on (including quickly), reconnect/restart XR and
    verify restoration. Compare Backend=LegacyCompanion separately.
-5. Verify old runtimes/OpenVR use their existing companion and Virtual Desktop
-   colour replacement remains available with NativePassthrough=false.
+5. Verify LegacyCompanion with old runtimes separately and check Virtual Desktop
+   colour replacement with NativePassthrough=false. Changing the game-local
+   adapter's startup transport requires a game restart.
 
 No visual success, bandwidth saving, or clean-runtime headset result is claimed
 from automated tests alone.

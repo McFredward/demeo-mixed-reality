@@ -17,6 +17,7 @@ GAMES = {
 
 
 def main():
+    subprocess.run([sys.executable, str(ROOT / "scripts/check-opencomposite.py")], check=True)
     subprocess.run(["python3", str(ROOT / "scripts/check-refasm.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/check-coverage.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/check-fade.py")], check=True)
@@ -41,6 +42,13 @@ def main():
                  "licenses/OpenVR-LICENSE.txt": ROOT / "licenses/OpenVR-LICENSE.txt"}
         for image in ("demeo-mixed-reality.jpg", "steam-frame-logo.svg", "steam-frame-logo-dark.svg", "README.md"):
             files["docs/img/" + image] = ROOT / "docs/img" / image
+        if configuration != "DEMEOBATTLEMARKED":
+            files["Install-OpenXR.ps1"] = ROOT / "Install-OpenXR.ps1"
+            for helper in ("Install.Helpers.psm1", "OpenXR.Install.Helpers.psm1"):
+                files["scripts/" + helper] = ROOT / "scripts" / helper
+            for native in ("opencomposite.bin", "build.json", "opencomposite-source.zip"):
+                files["native/opencomposite/" + native] = ROOT / "assets/opencomposite" / native
+            files["native/opencomposite/README.md"] = ROOT / "tools/opencomposite/README.md"
         if backend == "MelonLoader":
             files["greenscreen.ini"] = ROOT / "greenscreen.ini.example"
         archive_path = destination / f"{name}.zip"

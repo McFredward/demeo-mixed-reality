@@ -10,8 +10,8 @@ Disable=true
 ; Effective only on a detected Steam Frame connected through Steam Link.
 ; Other headsets/transports automatically use the colour-key background.
 NativePassthrough=true
-; Auto prefers SteamVR OpenXR alpha blending when supported.
-; SteamVR forces that path; LegacyCompanion retains the original PC/Frame companion.
+; Auto/SteamVR use native OpenXR (built-in or the game-local OpenComposite adapter).
+; LegacyCompanion retains the original PC/Frame companion. Restart to change transports.
 Backend=Auto
 ; Legacy companion only: include mask traffic in the sender video budget.
 AccountMaskBandwidth=true

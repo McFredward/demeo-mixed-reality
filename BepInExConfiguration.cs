@@ -58,7 +58,7 @@ namespace GreenScreen
                 _disableTable = config.Bind("TABLE", "Disable", true, "Hide the game table.");
                 _native = config.Bind("STEAMLINK", "NativePassthrough", true, "Enable native passthrough when Steam Frame over Steam Link is detected.");
                 _backend = config.Bind("STEAMLINK", "Backend", "Auto", new ConfigDescription(
-                    "Auto prefers SteamVR's built-in OpenXR alpha blending; LegacyCompanion uses the original PC/Frame companion. SteamVR requires native OpenXR alpha support.",
+                    "Auto/SteamVR use native OpenXR alpha (built-in OpenXR or the bundled game-local OpenComposite adapter). LegacyCompanion uses the original PC/Frame companion. Restart the game when changing transports.",
                     new AcceptableValueList<string>("Auto", "SteamVR", "LegacyCompanion")));
                 _budget = config.Bind("STEAMLINK", "AccountMaskBandwidth", true, "Legacy companion only: include mask traffic in the video bandwidth budget.");
                 _logging = config.Bind("LOGGING", "Level", "Auto", new ConfigDescription("Auto: dev diagnostics; main important messages and errors.",

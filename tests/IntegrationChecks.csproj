@@ -17,6 +17,7 @@
     <Compile Include="../OpenVrViewport.cs;../OpenVrSubmitSettings.cs;OpenVrViewportChecks.cs;UnityBoundary.cs;IntegrationChecks.cs;OpenVrSubmissionChecks.cs;NativeSubmitChecks.cs;OpenVrOriginChecks.cs;ShaderLoaderPort.cs" />
     <Compile Include="../OpenXrSubmission.cs;OpenXrSubmissionChecks.cs" />
     <Compile Include="../SteamVrAlpha.cs;SteamVrAlphaChecks.cs" />
+    <Compile Include="../OpenCompositeAlpha.cs" />
     <Compile Include="../BattlemarkedMenuAtmosphere.cs" />
     <EmbeddedResource Include="../assets/nativecoverage.bundle" LogicalName="GreenScreen.NativeCoverage" />
     <EmbeddedResource Include="../assets/nativefade.bundle" LogicalName="GreenScreen.NativeFade" />

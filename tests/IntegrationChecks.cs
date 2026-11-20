@@ -14,8 +14,12 @@ internal static class IntegrationChecks
     private static void Check(bool value,string name) { if (!value) throw new Exception(name); _checks++; }
     private static void Tick() { Time.frameCount++; Time.unscaledTime+=.1f; NativePassthrough.Tick(); }
     private static void WriteConfig(bool native)
+        => WriteBackendConfig(native, "LegacyCompanion");
+    private static void WriteNativeConfig(bool native)
+        => WriteBackendConfig(native, "Auto");
+    private static void WriteBackendConfig(bool native, string backend)
     {
-        File.WriteAllText(ConfigPath,"[TABLE]\nDisable=true\n[STEAMLINK]\nNativePassthrough="+native+"\n");
+        File.WriteAllText(ConfigPath,"[TABLE]\nDisable=true\n[STEAMLINK]\nNativePassthrough="+native+"\nBackend="+backend+"\n");
         File.SetLastWriteTimeUtc(ConfigPath,DateTime.UtcNow.AddSeconds(Time.frameCount));
         NativePassthrough.InvalidateCameras();
     }
@@ -576,7 +580,7 @@ internal static class IntegrationChecks
 #if DEMEOBATTLEMARKED
             OpenXrSubmissionChecks.Run(Check);
 #endif
-            SteamVrAlphaChecks.RunRendering(Check, Tick, WriteConfig);
+            SteamVrAlphaChecks.RunRendering(Check, Tick, WriteNativeConfig);
             Console.WriteLine($"Configuration and render lifecycle checks passed: {_checks}");
         }
         finally

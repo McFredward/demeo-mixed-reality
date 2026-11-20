@@ -7,8 +7,9 @@ using HarmonyLib;
 namespace GreenScreen
 {
     // SteamOS 0.5.8 / PC SteamVR beta added streamed OpenXR ALPHA_BLEND.
-    // Use Unity's existing instance and submission mode. No PC/Frame patch,
-    // second XR instance, global camera setting or companion grant is involved.
+    // Use the provider's real instance (Unity OpenXR or game-local OpenComposite)
+    // and submission mode. No PC/Frame patch, second diagnostic XR instance,
+    // global camera setting or companion grant is involved.
     internal static class SteamVrAlpha
     {
         internal enum Result { Unsupported, Pending, Active }
@@ -21,10 +22,12 @@ namespace GreenScreen
         }
 
         private static IBackend _backend;
-        internal static Func<IBackend> BackendFactory = UnityBackend.Open;
+        internal static Func<IBackend> BackendFactory = () => OpenCompositeAlpha.TryOpen() ?? UnityBackend.Open();
         private static Lease _lease;
         private static string _unavailable;
+        private static double _nextBind;
         internal static bool Active => _lease != null && _lease.Active;
+        internal static bool CanPrepare => _lease != null && _lease.CanPrepare;
 
         internal static void Initialize()
         {
@@ -35,13 +38,25 @@ namespace GreenScreen
                 _lease = new Lease(_backend);
                 _unavailable = null;
             }
-            catch (Exception error) { _unavailable = "Unity OpenXR alpha API unavailable: " + error.GetType().Name; }
+            catch (Exception error) { _unavailable = "OpenXR alpha control API unavailable: " + error.GetType().Name; }
         }
 
         internal static Result Tick(bool requested, double now, out string reason)
         {
             if (!requested) { Stop(); reason = null; return Result.Unsupported; }
-            if (_lease == null) { reason = _unavailable ?? "Unity OpenXR alpha API unavailable."; return Result.Unsupported; }
+            // Unity can load XRSDKOpenVR/openvr_api after the mod. Bind only
+            // the already-loaded bridge, never LoadLibrary a second XR owner.
+            if (now >= _nextBind && (_backend == null || _backend is UnityBackend))
+            {
+                _nextBind = now + 1;
+                var translated = OpenCompositeAlpha.TryOpen();
+                if (translated != null && !ReferenceEquals(translated, _backend))
+                {
+                    Stop(); (_backend as UnityBackend)?.Dispose();
+                    _backend = translated; _lease = new Lease(translated); _unavailable = null;
+                }
+            }
+            if (_lease == null) { reason = _unavailable ?? "OpenXR alpha control API unavailable."; return Result.Unsupported; }
             return _lease.Tick(now, out reason);
         }
         internal static void Stop() => _lease?.Stop();
@@ -49,7 +64,7 @@ namespace GreenScreen
         {
             Stop();
             (_backend as UnityBackend)?.Dispose();
-            _backend = null; _lease = null; _unavailable = null;
+            _backend = null; _lease = null; _unavailable = null; _nextBind = 0;
         }
 
         // Mode changes are queued by Unity. A successful Set is not acceptance.
@@ -65,6 +80,8 @@ namespace GreenScreen
             private string _failure;
             internal Lease(IBackend api) { _api = api; }
             internal bool Active => _active && _api.Running && _generation == _api.Generation;
+            internal bool CanPrepare => (_pending || _active) && _checked && _supported && !_failed
+                && _api.Running && _generation == _api.Generation;
 
             internal Result Tick(double now, out string reason)
             {
@@ -96,7 +113,7 @@ namespace GreenScreen
                         if (actual == 3) { _pending = false; _active = true; return Result.Active; }
                         if (actual != _previous) throw new InvalidOperationException("Environment blend mode changed while alpha was pending.");
                         if (++_observations >= 3 && now - _requestedAt >= 3)
-                            throw new InvalidOperationException("Unity did not accept ALPHA_BLEND within the activation deadline.");
+                            throw new InvalidOperationException("OpenXR did not accept ALPHA_BLEND within the activation deadline.");
                     }
                     else if (actual == 3 && _restore == 0)
                     {
@@ -108,7 +125,7 @@ namespace GreenScreen
                         _restore = 0; _pending = true; _requestedAt = now; _observations = 0;
                         _api.Mode = 3;
                     }
-                    reason = "Waiting for Unity to accept native SteamVR OpenXR alpha blending.";
+                    reason = "Waiting for native SteamVR OpenXR alpha blending to be accepted at frame submission.";
                     return Result.Pending;
                 }
                 catch (Exception error)
@@ -121,14 +138,14 @@ namespace GreenScreen
 
             internal void Stop()
             {
-                bool restore = (_pending || _active) && _previous != 3 && _previous > 0
-                    && _generation == _api.Generation && _api.Running;
+                bool restore = (_pending || _active) && _previous != 3 && _previous > 0;
                 bool pending = _pending;
                 int previous = _previous;
                 Forget();
                 if (!restore) return;
                 try
                 {
+                    if (_generation != _api.Generation || !_api.Running) return;
                     int actual = _api.Mode;
                     if (actual != 3 && !(pending && actual == previous)) return;
                     _restore = previous;

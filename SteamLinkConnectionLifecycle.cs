@@ -16,8 +16,11 @@ namespace GreenScreen
         private static bool _steamVrRuntime;
         private static bool _runtimeKnown;
         private static bool _openVrRuntime;
+        private static bool _translatedRuntime, _legacyAdapter;
         internal static bool UsesOpenVr => _runtimeKnown && _openVrRuntime;
         internal static bool UsesOpenXr => _runtimeKnown && _steamVrRuntime && !_openVrRuntime;
+        internal static bool UsesOpenComposite => UsesOpenXr && _translatedRuntime;
+        internal static bool UsesLegacyAdapter => UsesOpenVr && _legacyAdapter;
         internal static bool LegacyTransport => _runtimeKnown && !_steamVrRuntime;
         private static Type _generalSettings;
         private static string _runtimeStatus;
@@ -29,7 +32,7 @@ namespace GreenScreen
         internal static void Tick(bool requested)
         {
             bool running = GraphicsRunning();
-            if (!running) { _runtimeKnown = false; _steamVrRuntime = _openVrRuntime = false; _nextRuntimeCheck = 0; }
+            if (!running) { _runtimeKnown = false; _steamVrRuntime = _openVrRuntime = _translatedRuntime = _legacyAdapter = false; _nextRuntimeCheck = 0; }
             bool eligible = requested && running && Application.platform == RuntimePlatform.WindowsPlayer
                 && SteamVrRuntime();
             if (!eligible) { Reset(); return; }
@@ -62,6 +65,7 @@ namespace GreenScreen
             _nextRuntimeCheck = Time.unscaledTime + 1f;
             _steamVrRuntime = false;
             _openVrRuntime = false;
+            _translatedRuntime = _legacyAdapter = false;
             try
             {
                 _generalSettings ??= FindType("UnityEngine.XR.Management.XRGeneralSettings");
@@ -71,7 +75,18 @@ namespace GreenScreen
                 if (loader == null) return RuntimeResult("no active XR loader", false, false);
                 if (NativePassthrough.RuntimeObject(loader, "Unity.XR.OpenVR.OpenVRLoader") != null)
                 {
+                    var translated = OpenCompositeAlpha.Probe();
+                    if (translated == OpenCompositeAlpha.Transport.Pending)
+                        return RuntimeResult("OpenComposite waiting for OpenXR", false, false);
+                    if (translated == OpenCompositeAlpha.Transport.SteamVR)
+                    {
+                        _translatedRuntime = true;
+                        return RuntimeResult("OpenVR through OpenComposite -> SteamVR/OpenXR", true);
+                    }
+                    if (translated == OpenCompositeAlpha.Transport.OtherRuntime)
+                        return RuntimeResult("OpenVR through OpenComposite -> another OpenXR runtime", false);
                     _openVrRuntime = true;
+                    _legacyAdapter = translated == OpenCompositeAlpha.Transport.Legacy;
                     return RuntimeResult("OpenVR", true);
                 }
                 if (NativePassthrough.RuntimeObject(loader, "UnityEngine.XR.OpenXR.OpenXRLoader") == null)

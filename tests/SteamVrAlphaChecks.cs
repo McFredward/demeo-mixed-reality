@@ -9,7 +9,9 @@ internal static class SteamVrAlphaChecks
 {
     private sealed class Runtime : SteamVrAlpha.IBackend
     {
-        public long Generation { get; set; } = 1;
+        private long _generation = 1;
+        internal bool ThrowReads;
+        public long Generation { get { if (ThrowReads) throw new Exception("control API retired"); return _generation; } set => _generation = value; }
         public bool Running { get; set; } = true;
         internal bool Supported = true, ThrowQuery;
         internal int Actual = 1, Requested, Writes, Queries;
@@ -20,6 +22,13 @@ internal static class SteamVrAlphaChecks
 
     internal static void Run(Action<bool, string> check)
     {
+        check(System.Runtime.InteropServices.Marshal.SizeOf<OpenCompositeAlpha.State>() == 24
+            && System.Runtime.InteropServices.Marshal.OffsetOf<OpenCompositeAlpha.State>("Generation").ToInt32() == 8,
+            "managed OpenComposite state matches native 24-byte x64 ABI");
+        var state = new OpenCompositeAlpha.State { Version = 1, Bytes = 24, Generation = 1, Flags = 1, Mode = 1 };
+        check(state.Valid, "versioned native OpenComposite state is accepted");
+        state.Version = 2;
+        check(!state.Valid, "unknown OpenComposite state protocol is refused");
         var api = new Runtime(); var lease = new SteamVrAlpha.Lease(api);
         check(lease.Tick(0, out _) == SteamVrAlpha.Result.Pending && !lease.Active && api.Requested == 3,
             "native alpha request does not authorize transparency before Unity consumes it");
@@ -66,6 +75,11 @@ internal static class SteamVrAlphaChecks
         writes = api.Writes;
         lease.Tick(13, out _);
         check(api.Writes == writes, "rejected activation is not retried every frame");
+        api = new Runtime(); lease = new SteamVrAlpha.Lease(api);
+        lease.Tick(0, out _); api.Submit(); lease.Tick(1, out _);
+        api.ThrowReads = true; writes = api.Writes;
+        lease.Stop();
+        check(!lease.Active && api.Writes == writes, "retired native API during shutdown cannot throw past cleanup or receive a restoration write");
         check(ModConfiguration.Parse(new[] { "[STEAMLINK]", "Backend=LegacyCompanion" }).SteamLinkBackend == PassthroughBackend.LegacyCompanion
             && ModConfiguration.Parse(new[] { "[STEAMLINK]", "Backend=steamvr" }).SteamLinkBackend == PassthroughBackend.SteamVR
             && ModConfiguration.Parse(new[] { "[STEAMLINK]", "Backend=99" }).SteamLinkBackend == PassthroughBackend.Auto,
@@ -80,6 +94,12 @@ internal static class SteamVrAlphaChecks
         {
             SteamVrAlpha.BackendFactory = () => api;
             var manager = UnityEngine.XR.Management.XRGeneralSettings.Instance.Manager;
+            manager.activeLoader = new Unity.XR.OpenVR.OpenVRLoader();
+            NativePassthrough.Initialize(); configure(true);
+            Time.unscaledTime += 1.1f; tick(); SteamLinkConnection.Frame(); SteamLinkCoverageBridge.Grant(); tick();
+            check(Camera.main.backgroundColor == Color.black && !SteamLinkCoverageBridge.CanAcceptOrdinaryRgba && !OpenVrSubmission.Owned,
+                "Auto never silently falls back to companion permission on an untranslated OpenVR loader");
+            NativePassthrough.Shutdown();
             manager.activeLoader = new UnityEngine.XR.OpenXR.OpenXRLoader();
             UnityEngine.XR.OpenXR.OpenXRRuntime.name = "SteamVR/OpenXR";
             var camera = Camera.main;
@@ -89,10 +109,19 @@ internal static class SteamVrAlphaChecks
             UnityEngine.XR.OpenXR.OpenXRSettings.ApplyLayout = false;
             UnityEngine.XR.OpenXR.OpenXRSettings.Instance.renderMode = UnityEngine.XR.OpenXR.OpenXRSettings.RenderMode.SinglePassInstanced;
             int layoutWrites = UnityEngine.XR.OpenXR.OpenXRSettings.Writes;
+            var renderer = (UnityEngine.Rendering.Universal.UniversalRenderer)
+                ((UnityEngine.Rendering.Universal.UniversalAdditionalCameraData)camera.Extra).scriptableRenderer;
+            renderer.renderingModeActual = UnityEngine.Rendering.Universal.UniversalRenderer.RenderingMode.Deferred;
             NativePassthrough.Initialize(); configure(true);
             Time.unscaledTime += 1.1f; tick(); SteamLinkConnection.Frame(); tick();
+            check(api.Writes == 0 && !SteamVrAlpha.Active && camera.backgroundColor == Color.black,
+                "unsupported camera profile cannot queue native alpha before source preparation");
+            renderer.renderingModeActual = UnityEngine.Rendering.Universal.UniversalRenderer.RenderingMode.Forward;
+            tick();
             check(camera.backgroundColor == Color.black && !SteamLinkCoverageBridge.CanAcceptOrdinaryRgba,
                 "native activation waits with opaque output and does not open the legacy bridge");
+            check(NativePassthrough.OwnsSrpSource(camera) && !SteamVrAlpha.Active,
+                "pending native mode prepares current-frame alpha before its first frame-end submission");
             api.Submit(); tick();
             check(camera.backgroundColor == Color.clear && NativePassthrough.OwnsSrpSource(camera)
                 && !SteamLinkCoverageBridge.CanAcceptOrdinaryRgba,

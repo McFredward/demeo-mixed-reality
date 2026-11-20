@@ -10,7 +10,7 @@
     <IntermediateOutputPath>obj/SteamVrAlpha/</IntermediateOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../SteamVrAlpha.cs;SteamVrAlphaInteropChecks.cs" />
+    <Compile Include="../SteamVrAlpha.cs;../OpenCompositeAlpha.cs;SteamVrAlphaInteropChecks.cs" />
     <PackageReference Include="Lib.Harmony" Version="[2.4.2]" />
   </ItemGroup>
 </Project>

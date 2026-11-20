@@ -22,7 +22,7 @@ namespace GreenScreen
         private static int _cameraVersion, _preparedCameraVersion;
         private static OpaqueCoverage _coverage;
         private static SteamLinkCoverageBridge.Snapshot _grant;
-        private static bool _usingSteamVr;
+        private static bool _usingSteamVr, _preparingSteamVr;
         private static int _frame = -1;
         private static bool _allowHdr;
         private static RenderingPath _renderingPath;
@@ -147,11 +147,21 @@ namespace GreenScreen
             string reason = count == 1 ? Profile(head.Camera) : "Exactly one active stereo game camera is required.";
             bool eligible = count == 1 && reason == null;
             var nativeResult = SteamVrAlpha.Tick(settings.SteamLinkBackend != PassthroughBackend.LegacyCompanion
-                && SteamLinkConnectionLifecycle.UsesOpenXr, Time.unscaledTime, out string nativeReason);
+                && SteamLinkConnectionLifecycle.UsesOpenXr && (eligible || count == 0 && SteamVrAlpha.Active),
+                Time.unscaledTime, out string nativeReason);
             bool native = nativeResult == SteamVrAlpha.Result.Active;
-            bool legacy = settings.SteamLinkBackend != PassthroughBackend.SteamVR
-                && (settings.SteamLinkBackend == PassthroughBackend.LegacyCompanion
-                    || nativeResult == SteamVrAlpha.Result.Unsupported);
+            // Prepare alpha in this Update before the queued native request
+            // reaches xrEndFrame. Keep an opaque black camera clear until
+            // acceptance; the depth prefix already repairs the eye alpha.
+            bool direct = native || nativeResult == SteamVrAlpha.Result.Pending && SteamVrAlpha.CanPrepare;
+            bool legacy = settings.SteamLinkBackend == PassthroughBackend.LegacyCompanion;
+            if (legacy && SteamLinkConnectionLifecycle.UsesOpenComposite)
+            {
+                eligible = false;
+                reason = "Restart the game to switch from the game-local OpenXR adapter to original OpenVR / LegacyCompanion.";
+            }
+            else if (!legacy && SteamLinkConnectionLifecycle.UsesLegacyAdapter)
+                nativeReason = "Restart the game to activate the installed OpenXR adapter; it was started in LegacyCompanion / colour replacement mode.";
 #if DEMEOBATTLEMARKED
             if (eligible && legacy && GraphicsSettings.currentRenderPipeline != null && SteamLinkConnectionLifecycle.UsesOpenXr)
                 eligible = OpenXrSubmission.Ensure(out reason);
@@ -179,25 +189,26 @@ namespace GreenScreen
 #endif
             SteamLinkCoverageBridge.Tick(observe, Time.unscaledTime, settings.SteamLinkAccountMaskBandwidth);
             var grant = SteamLinkCoverageBridge.Current;
-            if (!eligible || !(native || legacy && grant.CanAcceptOrdinaryRgba))
+            if (!eligible || !(direct || legacy && grant.CanAcceptOrdinaryRgba))
             {
                 LeaveNative();
                 foreach (CameraState state in Cameras)
                     if (StereoCamera(state.Camera)) state.SetBackground(Color.black, true);
-                Report(reason ?? (!legacy ? nativeReason ?? "Native SteamVR alpha blending requires the game's OpenXR transport. Select LegacyCompanion for OpenVR."
+                Report(reason ?? (!legacy ? nativeReason ?? "Native OpenXR passthrough requires the game-local adapter. Run scripts/install.ps1 or Install-OpenXR.ps1, then restart the game. LegacyCompanion remains available explicitly."
                     : "Steam Link native passthrough: waiting for the legacy PC/Frame companion."));
                 return;
             }
 
             // Only Update admits a source, before either eye of this Unity frame.
             // A mid-frame callback can revoke this grant, but cannot acquire one.
-            if (_head != head || _usingSteamVr != native || (!native && !ReferenceEquals(_grant, grant)) || _target != head.Camera.targetTexture
+            if (_head != head || _usingSteamVr != direct || (!direct && !ReferenceEquals(_grant, grant)) || _target != head.Camera.targetTexture
                 || _pipeline != GraphicsSettings.currentRenderPipeline || _preparedCameraVersion != _cameraVersion
                 || _coverage == null || !_coverage.Ready)
             {
                 LeaveNative();
                 if (!Prepare(head, out reason))
                 {
+                    SteamVrAlpha.Stop();
                     SteamLinkCoverageBridge.Reset();
                     head.SetBackground(Color.black, true);
                     Report("Steam Link native passthrough unavailable: " + reason);
@@ -205,12 +216,14 @@ namespace GreenScreen
                 }
             }
             _grant = grant;
-            _usingSteamVr = native;
+            _usingSteamVr = direct;
+            _preparingSteamVr = direct && !native;
             _frame = Time.frameCount;
-            head.SetBackground(Color.clear, true);
+            head.SetBackground(_preparingSteamVr ? Color.black : Color.clear, true);
             if (legacy) OpenVrSubmission.Activate(grant);
             PassthroughFade.SetActive(true);
             Report(native ? "Native SteamVR OpenXR alpha blending active; no legacy companion required."
+                : direct ? nativeReason
                 : "Legacy companion RGBA source enabled. Both companions and a headset picture check are required.");
         }
 
@@ -350,7 +363,7 @@ namespace GreenScreen
         internal static bool OwnsSrpSource(Camera camera) => _head != null && _head.Camera == camera
             && _pipeline != null && _frame == Time.frameCount && SourcePermissionCurrent && SteamLinkConnection.Available;
 
-        private static bool SourcePermissionCurrent => _usingSteamVr ? SteamVrAlpha.Active
+        private static bool SourcePermissionCurrent => _usingSteamVr ? SteamVrAlpha.Active || _preparingSteamVr && SteamVrAlpha.CanPrepare
             : _grant != null && _grant.CanAcceptOrdinaryRgba && ReferenceEquals(_grant, SteamLinkCoverageBridge.Current);
 
         internal static void RecordSrpCoverage(Camera camera, object commands)
@@ -362,6 +375,7 @@ namespace GreenScreen
 
         internal static void CoverageFailed(Exception error)
         {
+            SteamVrAlpha.Stop();
             SteamLinkCoverageBridge.Reset();
             LeaveNative();
             Report("Steam Link native passthrough unavailable: opaque depth coverage failed: " + error.Message);
@@ -395,7 +409,7 @@ namespace GreenScreen
                 && _coverage != null && _coverage.Ready
                 && _target == camera.targetTexture && _pipeline == GraphicsSettings.currentRenderPipeline
                 && camera.allowHDR == _allowHdr && camera.actualRenderingPath == _renderingPath
-                && camera.clearFlags == CameraClearFlags.SolidColor && camera.backgroundColor == Color.clear
+                && camera.clearFlags == CameraClearFlags.SolidColor && camera.backgroundColor == (_preparingSteamVr ? Color.black : Color.clear)
                 && (_alphaProcessing == null || _alphaProcessing.Current)
                 && (_hdrPrecision == null || _hdrPrecision.Current); }
             catch { valid = false; }
@@ -410,6 +424,7 @@ namespace GreenScreen
             }
             // Revoke the entire source epoch, including when authority is lost
             // between the eyes. Never reuse the preceding eye's coverage.
+            if (_usingSteamVr) SteamVrAlpha.Stop();
             SteamLinkCoverageBridge.Reset();
             LeaveNative();
             _rescan = true;
@@ -420,7 +435,7 @@ namespace GreenScreen
             PassthroughFade.SetActive(false);
             OpenVrSubmission.Deactivate();
             _grant = null;
-            _usingSteamVr = false;
+            _usingSteamVr = _preparingSteamVr = false;
             _frame = -1;
             foreach (RenderSettingLease lease in PostProcessing) lease.Dispose();
             PostProcessing.Clear();
