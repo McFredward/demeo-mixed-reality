@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <mutex>
+#include <stdexcept>
 
 dmr::AlphaState dmrAlpha;
 namespace {

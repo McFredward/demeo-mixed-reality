@@ -70,6 +70,8 @@ VR_INTERFACE bool VR_CALLTYPE VR_GetRuntimePath(char* buffer, uint32_t capacity,
     path.write_text(text)
 
     edit("DrvOpenXR/DrvOpenXR.cpp", '#include "DrvOpenXR.h"', '#include "DrvOpenXR.h"\n#include "dmr_bridge.h"')
+    # New MSVC releases no longer supply chrono transitively via <thread>.
+    edit("DrvOpenXR/XrHMD.cpp", '#include "XrHMD.h"', '#include "XrHMD.h"\n#include <chrono>')
     edit("DrvOpenXR/DrvOpenXR.cpp", "\tcurrentBackend->OnSessionCreated();", "\tdmrSessionCreated(xr_instance, xr_system);\n\tcurrentBackend->OnSessionCreated();")
     edit("DrvOpenXR/DrvOpenXR.cpp", "void DrvOpenXR::ShutdownSession()\n{", "void DrvOpenXR::ShutdownSession()\n{\n\tdmrAlpha.running(false);")
     edit("DrvOpenXR/XrBackend.cpp", '#include "XrBackend.h"', '#include "XrBackend.h"\n#include "dmr_bridge.h"')
