@@ -15,7 +15,8 @@ def apply(root: Path):
             raise RuntimeError(f"Upstream context changed: {name}: {old[:70]!r}")
         path.write_text(text.replace(old, new))
 
-    for name in ("dmr_state.hpp", "dmr_bridge.h", "dmr_bridge.cpp", "dmr_smoke.cpp", "dmr_fake_original.cpp"):
+    for name in ("dmr_state.hpp", "dmr_bridge.h", "dmr_bridge.cpp", "dmr_smoke.cpp", "dmr_fake_original.cpp",
+                 "dmr_diagnostics.h", "dmr_diagnostics.cpp", "dmr_diagnostic_pattern.hpp", "dmr_diagnostics_checks.cpp"):
         shutil.copy2(Path(__file__).parent / name, root / "OpenOVR" / name)
 
     edit("CMakeLists.txt", "set(CMAKE_SYSTEM_VERSION 10.0.17134.0)", "# Use the installed Windows SDK (D3D11-only Demeo adapter).")
@@ -23,9 +24,10 @@ def apply(root: Path):
     edit("CMakeLists.txt", 'if (WIN32)\n\t# On Windows, use the bundled copy', 'if (WIN32)\n\t# Demeo uses D3D11; no Vulkan loader/minisdk dependency.\nelseif (FALSE)\n\t# On Windows, use the bundled copy')
     edit("CMakeLists.txt", "add_compile_definitions(XR_USE_GRAPHICS_API_OPENGL XR_USE_GRAPHICS_API_VULKAN)", "# Demeo adapter: retain only the D3D11 graphics binding.")
     edit("CMakeLists.txt", "XR_USE_GRAPHICS_API_D3D11 XR_USE_GRAPHICS_API_D3D12", "XR_USE_GRAPHICS_API_D3D11")
-    edit("CMakeLists.txt", "OCOVR/openvr_api.cpp\n", "OCOVR/openvr_api.cpp\n\tOpenOVR/dmr_bridge.cpp\n")
+    edit("CMakeLists.txt", "OCOVR/openvr_api.cpp\n", "OCOVR/openvr_api.cpp\n\tOpenOVR/dmr_bridge.cpp\n\tOpenOVR/dmr_diagnostics.cpp\n")
     with (root / "CMakeLists.txt").open("a") as output:
         output.write("\nadd_executable(DMRSmoke OpenOVR/dmr_smoke.cpp)\nadd_library(DMRFakeOriginal SHARED OpenOVR/dmr_fake_original.cpp)\n")
+        output.write("add_executable(DMRDiagnosticChecks OpenOVR/dmr_diagnostics_checks.cpp OpenOVR/dmr_diagnostics.cpp)\ntarget_link_libraries(DMRDiagnosticChecks PRIVATE d3d11)\ntarget_compile_definitions(DMRDiagnosticChecks PRIVATE NOMINMAX)\n")
 
     # Keep public OpenVR calls binary-compatible, including the game provider's
     # actual import table. Explicit LegacyCompanion forwards to the local backup.
@@ -123,6 +125,36 @@ VR_INTERFACE bool VR_CALLTYPE VR_GetRuntimePath(char* buffer, uint32_t capacity,
     edit("OpenOVR/Compositor/dx11compositor.cpp", '\t\tOOVR_LOG("Generating new swap chain");', '\t\tdmrSourceSamples = srcDesc.SampleDesc.Count;\n\t\tdmrSourceArray = srcDesc.ArraySize;\n\t\tOOVR_LOG("Generating new swap chain");')
     edit("OpenOVR/Compositor/dx11compositor.cpp", "\tbool usable = true;", "\tbool usable = inputDesc.SampleDesc.Count == dmrSourceSamples && inputDesc.ArraySize == dmrSourceArray;")
     edit("OpenOVR/Compositor/dx11compositor.cpp", "\t\t\t\tdevice->CreateTexture2D(&resDesc, nullptr, &resolvedMSAATextures[i]);", "\t\t\t\tOOVR_FAILED_DX_ABORT(device->CreateTexture2D(&resDesc, nullptr, &resolvedMSAATextures[i]));")
+    edit("OpenOVR/Compositor/dx11compositor.h", '#include "dxcompositor.h"', '#include "dxcompositor.h"\n#include "../dmr_diagnostics.h"')
+    edit("OpenOVR/Compositor/dx11compositor.h", "\tID3D11Device* device = nullptr;", "\tstd::unique_ptr<dmr::DiagnosticProbe> dmrDiagnostic;\n\tbool dmrDiagnosticFailed = false;\n\tID3D11Device* device = nullptr;")
+    edit("OpenOVR/Compositor/dx11compositor.cpp", '#include "dx11compositor.h"', '#include "dx11compositor.h"\n#include "../dmr_bridge.h"\n#include "../dmr_diagnostic_pattern.hpp"\n#include <chrono>')
+    edit("OpenOVR/Compositor/dx11compositor.cpp", "\t// Release the swapchain - OpenXR will use the last-released image in a swapchain", '''
+    // Diagnostic writes/readback happen only while this exact eye image is
+    // acquired, after the game copy and before its OpenXR release. The default
+    // path creates no diagnostic objects, textures, queries or GPU commands.
+    if (eye.has_value() && !dmrDiagnosticFailed && dmrDiagnosticsEnabled()) {
+        const auto frame = dmrAlpha.frame();
+        if (dmr::diagnosticAllowed(true, dmrAlpha.read(), frame)) {
+            try {
+                if (!dmrDiagnostic) {
+                    OOVR_LOGF("DMR alpha source: eye=%u source_format=%u source_samples=%u source_array=%u openvr_colour_space=%u xr_format=%lld; layer=SOURCE_ALPHA, premultiplied; bounds=%f,%f,%f,%f",
+                        static_cast<unsigned>(*eye), static_cast<unsigned>(srcDesc.Format), srcDesc.SampleDesc.Count, srcDesc.ArraySize,
+                        static_cast<unsigned>(texture->eColorSpace), static_cast<long long>(createInfo.format),
+                        bounds ? bounds->uMin : 0.0f, bounds ? bounds->vMin : 0.0f, bounds ? bounds->uMax : 1.0f, bounds ? bounds->vMax : 1.0f);
+                    dmrDiagnostic = std::make_unique<dmr::DiagnosticProbe>();
+                }
+                const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                dmrDiagnostic->process(context, imagesHandles[currentIndex].texture, static_cast<DXGI_FORMAT>(createInfo.format),
+                    { frame.generation, frame.serial, static_cast<unsigned>(*eye) }, seconds,
+                    [](const char* line) { OOVR_LOG(line); });
+            } catch (...) {
+                dmrDiagnosticFailed = true;
+                OOVR_LOG("DMR alpha probe allocation unavailable; normal game submission remains active.");
+            }
+        }
+    }
+
+\t// Release the swapchain - OpenXR will use the last-released image in a swapchain''')
     # No binary provider settings / per-eye copy adapter is needed on this path.
 
 

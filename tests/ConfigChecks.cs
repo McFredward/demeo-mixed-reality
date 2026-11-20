@@ -21,7 +21,8 @@ internal static class ConfigChecks
             var config = BepInExConfiguration.Open(temp);
             var backend = new BepInExConfiguration(config);
             var defaults = backend.ReadIfChanged();
-            Check(File.Exists(path) && config.Count == 8, "Real ConfigFile creates the eight normal entries.");
+            Check(File.Exists(path) && config.Count == 9, "Real ConfigFile creates the normal entries including opt-in diagnostics.");
+            Check(!defaults.OpenXRAlphaDiagnostics, "GPU diagnostics default off for every branch and loader.");
             Check(defaults.SteamLinkBackend == PassthroughBackend.Auto, "Native backend defaults to automatic capability-based selection.");
             Check(backend.Path == path && !File.Exists(System.IO.Path.Combine(temp, "566784.cfg")),
                 "New installs use the readable filename without creating a numeric config.");
@@ -33,6 +34,8 @@ internal static class ConfigChecks
             var existing = new BepInExConfiguration(new ConfigFile(path, false));
             Check(!existing.ReadIfChanged().DisableTable, "Existing normal config wins over legacy values.");
             Check(File.ReadAllText(path).Contains("Backend = Auto"), "Upgrades expose the backend selector in the existing config.");
+            config.Bind("DIAGNOSTICS", "OpenXRAlpha", false).Value = true;
+            Check(backend.ReadIfChanged().OpenXRAlphaDiagnostics, "Normal config retains explicit diagnostic opt-in.");
             string importedPath = System.IO.Path.Combine(temp, "imported.cfg");
             var importedFile = new ConfigFile(importedPath, false);
             var importedBackend = new BepInExConfiguration(importedFile);

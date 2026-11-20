@@ -59,9 +59,11 @@ def main():
     assert receipt['schema'] == 'demeo-opencomposite-build-v1'
     assert receipt['upstream'] == 'cff07db75c4823afe93ed7027b03d5f7bc86f164'
     assert receipt['dll_smoke_tested'] is True and receipt['headset_tested'] is False
+    assert receipt.get('diagnostic_warp_tested') is True, 'Missing Windows software-GPU diagnostic validation'
     assert sha(binary.read_bytes()) == receipt['binary_sha256'], 'Native binary hash changed'
     assert sha(archive.read_bytes()) == receipt['source_sha256'], 'Corresponding source archive hash changed'
-    required = {'tools/opencomposite/'+name for name in ('apply.py','dmr_bridge.cpp','dmr_bridge.h','dmr_state.hpp','dmr_smoke.cpp','dmr_fake_original.cpp')}
+    required = {'tools/opencomposite/'+name for name in ('apply.py','dmr_bridge.cpp','dmr_bridge.h','dmr_state.hpp','dmr_smoke.cpp','dmr_fake_original.cpp',
+                                                       'dmr_diagnostics.cpp','dmr_diagnostics.h','dmr_diagnostic_pattern.hpp','dmr_diagnostics_checks.cpp')}
     required.add('scripts/build-opencomposite.py')
     assert required <= receipt['inputs'].keys(), 'Missing native build input proofs'
     with zipfile.ZipFile(archive) as source:

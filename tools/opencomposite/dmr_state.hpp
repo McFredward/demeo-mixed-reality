@@ -17,6 +17,7 @@ class AlphaState {
     std::mutex gate;
     Snapshot value;
     uint32_t requested = 1, eyes = 0;
+    uint64_t serial = 0;
 public:
     Snapshot read() { std::lock_guard lock(gate); return value; }
     void session(bool steamVR, bool alpha) {
@@ -37,13 +38,13 @@ public:
         requested = mode;
         return true;
     }
-    void beginFrame() { std::lock_guard lock(gate); eyes = 0; }
+    void beginFrame() { std::lock_guard lock(gate); eyes = 0; ++serial; }
     void eye(uint32_t index) { std::lock_guard lock(gate); if (index < 2) eyes |= 1u << index; }
-    struct Frame { uint64_t generation; bool alpha, pair; };
+    struct Frame { uint64_t generation; bool alpha, pair; uint64_t serial; };
     Frame frame() {
         std::lock_guard lock(gate);
         bool alpha = requested == 3 && (value.flags & (Running | SteamVR | SupportsAlpha)) == (Running | SteamVR | SupportsAlpha);
-        return { value.generation, alpha, eyes == 3 };
+        return { value.generation, alpha, eyes == 3, serial };
     }
     void presented(Frame frame, bool success) {
         std::lock_guard lock(gate);

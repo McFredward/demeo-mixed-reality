@@ -58,6 +58,8 @@ jobs:
           python3 scripts/check-opencomposite.py
           g++ -std=c++20 -Wall -Wextra -Werror -pthread tests/OpenCompositeAlphaChecks.cpp -o /tmp/demeo-openxr-alpha-checks
           /tmp/demeo-openxr-alpha-checks
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread tests/OpenCompositeDiagnosticChecks.cpp -o /tmp/demeo-openxr-diagnostic-checks
+          /tmp/demeo-openxr-diagnostic-checks
       - name: Check automatic recenter suppression and preserve manual recenter
         run: python3 scripts/check-recenter.py
       - name: Check Unity6 IL2CPP shader loader against native span and handle fixture

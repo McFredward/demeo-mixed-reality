@@ -13,7 +13,7 @@ namespace GreenScreen
         private readonly ConfigFile _config;
         private readonly ConfigEntry<int> _r, _g, _b;
         private readonly ConfigEntry<string> _backend;
-        private readonly ConfigEntry<bool> _disableTable, _native, _budget;
+        private readonly ConfigEntry<bool> _disableTable, _native, _budget, _alphaDiagnostics;
         private readonly ConfigEntry<string> _logging;
         private DateTime _modified;
         private long _length = -1;
@@ -63,6 +63,8 @@ namespace GreenScreen
                 _budget = config.Bind("STEAMLINK", "AccountMaskBandwidth", true, "Legacy companion only: include mask traffic in the video bandwidth budget.");
                 _logging = config.Bind("LOGGING", "Level", "Auto", new ConfigDescription("Auto: dev diagnostics; main important messages and errors.",
                     new AcceptableValueList<string>("Auto", "Debug", "Important", "Warning", "Error")));
+                _alphaDiagnostics = config.Bind("DIAGNOSTICS", "OpenXRAlpha", false,
+                    "Demeo/Battles OpenComposite only: show temporary alpha/light test swatches and log bounded RGB/alpha summaries. Off by default; restart the game after changing this option.");
                 if (created && imported != null)
                 {
                     _r.Value = (int)Math.Round(imported.BackgroundColor.r * 255);
@@ -73,6 +75,7 @@ namespace GreenScreen
                     _backend.Value = imported.SteamLinkBackend.ToString();
                     _budget.Value = imported.SteamLinkAccountMaskBandwidth;
                     _logging.Value = imported.LogLevel.ToString();
+                    _alphaDiagnostics.Value = imported.OpenXRAlphaDiagnostics;
                 }
                 // Also expose newly added options in existing configurations.
                 // ConfigFile retains loaded values and unbound/orphan entries.
@@ -97,7 +100,8 @@ namespace GreenScreen
                 SteamLinkNativePassthrough = _native.Value,
                 SteamLinkBackend = ModConfiguration.ParseBackend(_backend.Value),
                 SteamLinkAccountMaskBandwidth = _budget.Value,
-                LogLevel = ModLogging.Parse(_logging.Value)
+                LogLevel = ModLogging.Parse(_logging.Value),
+                OpenXRAlphaDiagnostics = _alphaDiagnostics.Value
             };
             _dirty = false; _modified = modified; _length = length;
             return result;

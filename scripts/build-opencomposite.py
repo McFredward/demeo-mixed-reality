@@ -31,7 +31,8 @@ def main():
     run(sys.executable, ROOT / "tools/opencomposite/apply.py", source)
     run("cmake", "-S", source, "-B", build, "-A", "x64", "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW",
         "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded", "-DOC_VERSION=DemeoMR-OpenXR-1-" + REVISION[:12])
-    run("cmake", "--build", build, "--config", "Release", "--target", "OCOVR", "DMRSmoke", "DMRFakeOriginal", "--parallel", "4")
+    run("cmake", "--build", build, "--config", "Release", "--target", "OCOVR", "DMRSmoke", "DMRFakeOriginal", "DMRDiagnosticChecks", "--parallel", "4")
+    run(build / "Release/DMRDiagnosticChecks.exe")
     for scenario in ("native", "legacy", "legacy-melon"):
         legacy = scenario != "native"
         fixture = build / ("smoke-" + scenario)
@@ -69,7 +70,7 @@ def main():
                "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                "source_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
                "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-               "dll_smoke_tested": True, "headset_tested": False}
+               "dll_smoke_tested": True, "diagnostic_warp_tested": True, "headset_tested": False}
     (args.output / "build.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 

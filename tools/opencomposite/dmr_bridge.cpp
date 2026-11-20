@@ -24,7 +24,8 @@ fs::path modulePath(HMODULE module) {
     if (count == 0 || count >= 32768) throw std::runtime_error("Demeo MR: module path unavailable");
     return fs::path(path);
 }
-bool legacyRequested() {
+struct Options { bool legacy = false, diagnostics = false; };
+Options readOptions() {
     const auto game = modulePath(nullptr).parent_path();
     // The source installer can explicitly select MelonLoader even if an old
     // BepInEx installation/config remains in the same game folder.
@@ -53,33 +54,36 @@ bool legacyRequested() {
             }
         }
     }
-    if (config.empty()) return false;
+    if (config.empty()) return {};
     std::ifstream input(config);
     if (!input) throw std::runtime_error("Demeo MR: cannot read transport selection config");
     std::string line, section;
-    bool native = true, legacy = false;
+    bool native = true, legacy = false, diagnostics = false;
     while (std::getline(input, line)) {
         line = trim(line);
         if (line.empty() || line[0] == '#' || line[0] == ';') continue;
         if (line.front() == '[' && line.back() == ']') { section = trim(line.substr(1, line.size()-2)); continue; }
         auto equal = line.find('=');
-        if (section != "steamlink" || equal == std::string::npos) continue;
+        if (equal == std::string::npos) continue;
         auto key = trim(line.substr(0, equal)), value = trim(line.substr(equal+1));
-        if (key == "backend") legacy = value == "legacycompanion";
-        if (key == "nativepassthrough") native = value == "true" || value == "1";
+        if (section == "steamlink" && key == "backend") legacy = value == "legacycompanion";
+        if (section == "steamlink" && key == "nativepassthrough") native = value == "true" || value == "1";
+        if (section == "diagnostics" && key == "openxralpha") diagnostics = value == "true" || value == "1";
     }
-    return legacy || !native;
+    return { legacy || !native, diagnostics };
 }
-bool useLegacy() {
+const Options& options() {
     // Transport is selected once, before the game's first OpenVR call. Alpha
     // itself can toggle live; switching XR transports requires a game restart.
-    static const bool legacy = [] {
-        try { return legacyRequested(); }
-        catch (const std::exception& error) { OOVR_LOG(error.what()); return true; }
+    static const Options selected = [] {
+        try { return readOptions(); }
+        catch (const std::exception& error) { OOVR_LOG(error.what()); return Options{ true, false }; }
     }();
-    return legacy;
+    return selected;
 }
+bool useLegacy() { return options().legacy; }
 }
+bool dmrDiagnosticsEnabled() { return !options().legacy && options().diagnostics; }
 
 void* dmrLegacyFunction(const char* name) {
     if (!useLegacy()) return nullptr;

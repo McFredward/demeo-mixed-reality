@@ -127,6 +127,9 @@ The installer does not rewrite the user's global runtime preference.
 
 ## Source, build and validation
 
+For the unresolved native edges/light comparison and its opt-in measurement mode,
+see [OpenXR diagnostics](OPENXR-DIAGNOSTICS.md).
+
 `scripts/build-opencomposite.py` builds the pinned upstream and dependencies on
 Windows/MSVC, with ATL and the installed Windows SDK. Only D3D11 is enabled;
 unused Vulkan blocks are excluded and no Vulkan installation is required. The
