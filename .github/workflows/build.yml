@@ -49,6 +49,10 @@ jobs:
           /tmp/demeo-identity-checks
       - name: Check loader and rendering lifecycles
         run: python3 scripts/check-integration.py
+      - name: Check built-in SteamVR alpha ABI and lifecycle with real Harmony
+        run: |
+          dotnet build tests/SteamVrAlphaInteropChecks.csproj -p:RestoreLockedMode=true --nologo -v:q
+          dotnet tests/bin/SteamVrAlpha/net8.0/SteamVrAlphaInteropChecks.dll
       - name: Check automatic recenter suppression and preserve manual recenter
         run: python3 scripts/check-recenter.py
       - name: Check Unity6 IL2CPP shader loader against native span and handle fixture

@@ -105,6 +105,6 @@ try {
         }
         Write-Host "Installed $target (SHA-256 $((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash))"
         Write-Host "Configuration: $activeConfig"
-        Write-Host 'New configs enable native passthrough automatically for Frame over Steam Link. Other headsets/transports use the colour-key background. NativePassthrough=false opts out; existing configs are preserved.'
+        Write-Host 'Frame over Steam Link: Backend=Auto prefers built-in SteamVR OpenXR alpha blending where supported. OpenVR/older runtimes use the legacy PC/Frame companion; Backend=LegacyCompanion selects it explicitly. NativePassthrough=false uses colour replacement. Existing config choices are preserved.'
     }
 } finally { Pop-Location }

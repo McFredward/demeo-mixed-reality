@@ -142,6 +142,7 @@ internal static class IntegrationChecks
         Environment.CurrentDirectory=temp;
         try
         {
+            SteamVrAlphaChecks.Run(Check);
             Check(ModConfiguration.Parse(Array.Empty<string>()).SteamLinkAccountMaskBandwidth,"mask bandwidth accounting defaults on for Demeo producers");
             Check(!ModConfiguration.Parse(new[]{"[STEAMLINK]","AccountMaskBandwidth=false"}).SteamLinkAccountMaskBandwidth,"bandwidth accounting can be opted out independently of passthrough");
             Check(!ModConfiguration.Parse(new[]{"[STEAMLINK]","AccountMaskBandwidth=invalid"}).SteamLinkAccountMaskBandwidth,"malformed bandwidth policy cannot opt into rate changes");
@@ -575,6 +576,7 @@ internal static class IntegrationChecks
 #if DEMEOBATTLEMARKED
             OpenXrSubmissionChecks.Run(Check);
 #endif
+            SteamVrAlphaChecks.RunRendering(Check, Tick, WriteConfig);
             Console.WriteLine($"Configuration and render lifecycle checks passed: {_checks}");
         }
         finally

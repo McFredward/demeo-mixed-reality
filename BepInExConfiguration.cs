@@ -12,6 +12,7 @@ namespace GreenScreen
         internal const string FileName = "DemeoMixedReality.cfg";
         private readonly ConfigFile _config;
         private readonly ConfigEntry<int> _r, _g, _b;
+        private readonly ConfigEntry<string> _backend;
         private readonly ConfigEntry<bool> _disableTable, _native, _budget;
         private readonly ConfigEntry<string> _logging;
         private DateTime _modified;
@@ -56,7 +57,10 @@ namespace GreenScreen
                 _b = config.Bind("COLOR", "B", 0, colour);
                 _disableTable = config.Bind("TABLE", "Disable", true, "Hide the game table.");
                 _native = config.Bind("STEAMLINK", "NativePassthrough", true, "Enable native passthrough when Steam Frame over Steam Link is detected.");
-                _budget = config.Bind("STEAMLINK", "AccountMaskBandwidth", true, "Include lossless mask traffic in the video bandwidth budget.");
+                _backend = config.Bind("STEAMLINK", "Backend", "Auto", new ConfigDescription(
+                    "Auto prefers SteamVR's built-in OpenXR alpha blending; LegacyCompanion uses the original PC/Frame companion. SteamVR requires native OpenXR alpha support.",
+                    new AcceptableValueList<string>("Auto", "SteamVR", "LegacyCompanion")));
+                _budget = config.Bind("STEAMLINK", "AccountMaskBandwidth", true, "Legacy companion only: include mask traffic in the video bandwidth budget.");
                 _logging = config.Bind("LOGGING", "Level", "Auto", new ConfigDescription("Auto: dev diagnostics; main important messages and errors.",
                     new AcceptableValueList<string>("Auto", "Debug", "Important", "Warning", "Error")));
                 if (created && imported != null)
@@ -66,10 +70,13 @@ namespace GreenScreen
                     _b.Value = (int)Math.Round(imported.BackgroundColor.b * 255);
                     _disableTable.Value = imported.DisableTable;
                     _native.Value = imported.SteamLinkNativePassthrough;
+                    _backend.Value = imported.SteamLinkBackend.ToString();
                     _budget.Value = imported.SteamLinkAccountMaskBandwidth;
                     _logging.Value = imported.LogLevel.ToString();
                 }
-                if (created) config.Save();
+                // Also expose newly added options in existing configurations.
+                // ConfigFile retains loaded values and unbound/orphan entries.
+                config.Save();
             }
             finally { config.SaveOnConfigSet = save; }
             config.SettingChanged += (_, _) => _dirty = true;
@@ -88,6 +95,7 @@ namespace GreenScreen
                 BackgroundColor = new Color(_r.Value / 255f, _g.Value / 255f, _b.Value / 255f, 1),
                 DisableTable = _disableTable.Value,
                 SteamLinkNativePassthrough = _native.Value,
+                SteamLinkBackend = ModConfiguration.ParseBackend(_backend.Value),
                 SteamLinkAccountMaskBandwidth = _budget.Value,
                 LogLevel = ModLogging.Parse(_logging.Value)
             };

@@ -21,7 +21,8 @@ internal static class ConfigChecks
             var config = BepInExConfiguration.Open(temp);
             var backend = new BepInExConfiguration(config);
             var defaults = backend.ReadIfChanged();
-            Check(File.Exists(path) && config.Count == 7, "Real ConfigFile creates the seven normal entries.");
+            Check(File.Exists(path) && config.Count == 8, "Real ConfigFile creates the eight normal entries.");
+            Check(defaults.SteamLinkBackend == PassthroughBackend.Auto, "Native backend defaults to automatic capability-based selection.");
             Check(backend.Path == path && !File.Exists(System.IO.Path.Combine(temp, "566784.cfg")),
                 "New installs use the readable filename without creating a numeric config.");
             Check(defaults.BackgroundColor.g == 1 && defaults.BackgroundColor.r == 0 && defaults.BackgroundColor.b == 0
@@ -31,6 +32,7 @@ internal static class ConfigChecks
             File.WriteAllText(legacy, "[COLOR]\nR=12\nG=34\nB=56\n[TABLE]\nDisable=true\n[STEAMLINK]\nNativePassthrough=false\nAccountMaskBandwidth=false\n[LOGGING]\nLevel=Debug\n");
             var existing = new BepInExConfiguration(new ConfigFile(path, false));
             Check(!existing.ReadIfChanged().DisableTable, "Existing normal config wins over legacy values.");
+            Check(File.ReadAllText(path).Contains("Backend = Auto"), "Upgrades expose the backend selector in the existing config.");
             string importedPath = System.IO.Path.Combine(temp, "imported.cfg");
             var importedFile = new ConfigFile(importedPath, false);
             var importedBackend = new BepInExConfiguration(importedFile);

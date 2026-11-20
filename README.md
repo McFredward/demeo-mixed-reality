@@ -56,10 +56,16 @@ After installing the mod on your PC:
 
 ## Steam Frame passthrough
 
-Install [Steam Link Native Passthrough](https://github.com/McFredward/steam-link-native-passthrough)
-on the PC and Frame. Keep `NativePassthrough=true` in the [mod config](#settings).
-Native passthrough requires Steam Frame over Steam Link. All three games have
-been tested on the headset.
+Keep `NativePassthrough=true` and `Backend=Auto` in the [mod config](#settings).
+For **Battlemarked**, use **SteamOS 0.5.8+ beta on Frame** and **SteamVR 2.19.2+
+beta on PC**, with SteamVR as the OpenXR runtime. The mod uses SteamVR's built-in
+alpha blending when supported; no companion is needed for this path.
+
+**Demeo / Demeo Battles (OpenVR)** and older runtimes retain the
+[Steam Link Native Passthrough companion](https://github.com/McFredward/steam-link-native-passthrough)
+on PC and Frame. Set `Backend=LegacyCompanion` to select that path explicitly.
+All three games were previously tested with the companion; the new built-in
+path still needs a headset test.
 
 Steam Link can use **Auto or a fixed bitrate**. Close **OVR Advanced Settings**
 while playing Demeo; it can cause unwanted recentering.
@@ -82,6 +88,7 @@ Disable=true
 
 [STEAMLINK]
 NativePassthrough=true
+Backend=Auto
 
 [LOGGING]
 Level=Auto

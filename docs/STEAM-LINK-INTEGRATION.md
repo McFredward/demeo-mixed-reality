@@ -1,8 +1,13 @@
 # Steam Link native source
 
+The current backend selector and direct SteamVR OpenXR path are documented in
+[SteamVR alpha blending](development/STEAMVR-ALPHA.md). The observations below
+describe the original **legacy companion** integration, unless stated otherwise;
+they do not establish headset validation of the new built-in path.
+
 All three games support BepInEx and MelonLoader entry points with the same
 configuration, source negotiation, camera owner and URP adapter. Native passthrough is enabled by default only on a confirmed Frame / Steam Link
-session. The active INI is included in each ZIP.
+session. BepInEx creates its normal config; MelonLoader uses the legacy INI.
 
 `NativePassthrough.Tick` runs on the Unity thread through BepInEx Mono Update,
 a BepInEx IL2CPP driver, or MelonLoader OnUpdate. Battlemarked's environment

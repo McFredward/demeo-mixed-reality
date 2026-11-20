@@ -4,11 +4,14 @@ using UnityEngine;
 
 namespace GreenScreen
 {
+    internal enum PassthroughBackend { Auto, SteamVR, LegacyCompanion }
+
     internal sealed class ModConfiguration
     {
         internal Color BackgroundColor = new Color(0f, 1f, 0f, 1f);
         internal bool DisableTable = true;
         internal bool SteamLinkNativePassthrough = true;
+        internal PassthroughBackend SteamLinkBackend = PassthroughBackend.Auto;
         internal bool SteamLinkAccountMaskBandwidth = true;
         internal ModLogLevel LogLevel = ModLogLevel.Auto;
 
@@ -46,6 +49,8 @@ namespace GreenScreen
                     settings.SteamLinkAccountMaskBandwidth = TryBoolean(value, out bool budget) && budget;
                 if (section == "STEAMLINK" && key == "NATIVEPASSTHROUGH")
                     settings.SteamLinkNativePassthrough = TryBoolean(value, out bool native) && native;
+                if (section == "STEAMLINK" && key == "BACKEND")
+                    settings.SteamLinkBackend = ParseBackend(value);
             }
             if (r >= 0 && g >= 0 && b >= 0)
                 settings.BackgroundColor = new Color(r / 255f, g / 255f, b / 255f, 1f);
@@ -54,6 +59,10 @@ namespace GreenScreen
 
         private static int Rgb(string value) => int.TryParse(value, out int number)
             && number >= 0 && number <= 255 ? number : -1;
+
+        internal static PassthroughBackend ParseBackend(string value) =>
+            Enum.TryParse(value, true, out PassthroughBackend backend) && Enum.IsDefined(typeof(PassthroughBackend), backend)
+                ? backend : PassthroughBackend.Auto;
 
         private static bool TryBoolean(string value, out bool result)
         {
@@ -121,7 +130,7 @@ namespace GreenScreen
                 Utils.LogInfo("Demeo Mixed Reality configuration: "
                     + (ActivePath.Length == 0 ? "no INI found; using defaults" : ActivePath)
                     + "; LogLevel=" + ModLogging.Level + " (configured=" + next.LogLevel + ", build default=" + ModLogging.BuildDefault
-                    + "); Steam Link NativePassthrough=" + next.SteamLinkNativePassthrough + "."
+                    + "); Steam Link NativePassthrough=" + next.SteamLinkNativePassthrough + "; Backend=" + next.SteamLinkBackend + "."
                     + (next.SteamLinkNativePassthrough ? " Enabled only after Frame/Steam Link identity is confirmed."
                         : " Virtual Desktop colour-key mode; Steam Link native passthrough is disabled. Set [STEAMLINK] NativePassthrough=true in the config to enable it."));
                 return true;
