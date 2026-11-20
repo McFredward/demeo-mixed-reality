@@ -51,6 +51,7 @@
     <Compile Remove="tests/**/*.cs;unity/**/*.cs;.planning/**/*.cs" />
     <EmbeddedResource Include="assets/nativecoverage.bundle" LogicalName="GreenScreen.NativeCoverage" />
     <EmbeddedResource Include="assets/nativefade.bundle" LogicalName="GreenScreen.NativeFade" />
+    <EmbeddedResource Include="assets/alphadiagnostics.bundle" LogicalName="GreenScreen.AlphaDiagnostics" />
     <EmbeddedResource Include="assets/steamlink/connection-reader.exe" LogicalName="GreenScreen.SteamLink.connection-reader.exe" />
     <EmbeddedResource Include="assets/steamlink/openvr_api.bin" LogicalName="GreenScreen.SteamLink.openvr_api.dll" />
     <None Update="greenscreen.ini.example" TargetPath="greenscreen.ini" CopyToOutputDirectory="PreserveNewest" Condition="'$(LoaderBackend)' == 'MelonLoader'" />

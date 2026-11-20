@@ -34,7 +34,40 @@ path, unlike the companion. The referenced screenshots were not yet available
 in this checkout/conversation, so neither their appearance nor the failing
 transport stage has been independently verified. No Venture checkout was modified.
 
-## Opt-in Battles/Demeo test
+## Battlemarked: primary headset test candidate
+
+Battlemarked uses the game's existing Unity OpenXR provider and **does not need
+OpenComposite**. Update with `scripts/install.ps1` and keep `Backend=Auto` and
+`NativePassthrough=true`. Enable the same `[DIAGNOSTICS] OpenXRAlpha=true` option
+in `BepInEx/config/DemeoMixedReality.cfg` (MelonLoader: the mod INI), then restart
+the game for an unambiguous test session.
+
+`UnityAlphaDiagnostics` patches the existing URP `FinalBlitPass.ExecutePass`
+postfix. It draws the six-cell strip described below, after the final game blit
+on the owned XR camera's still-bound attachment, using the existing XR instance
+multiplier. It does not select a render target, read native XR render parameters,
+force a stereo layout, or issue any GPU readbacks. Calls for intermediate targets,
+spectator cameras, non-XR outputs, stale frames and inactive native alpha are
+refused. This bypasses the final game material but still goes through Unity's
+normal rendering/submission and the downstream SteamVR/Steam Link pipeline.
+
+The strip lasts 120 seconds of Unity unscaled time from its first actual draw.
+The game log distinguishes `diagnostics ready` from `test strip drawn after final
+blit`, including camera, Unity frame, final-alpha setting and project colour space.
+If no eligible final blit reaches the hook after ten active seconds, it reports
+that **no test pixels were drawn**. Loading a shader or installing a hook alone is
+not a successful visual test. Optional failures leave ordinary native passthrough
+running. Opt-out/unload removes the hook and owned material/bundle.
+
+Collect the normal BepInEx/MelonLoader log and matching SteamVR logs; there is no
+OpenComposite log or numeric pixel-readback evidence for this Battlemarked path.
+The shipped D3D11 bundle is checked for exact RGBA replacement, no depth/stencil
+writes, and stereo variants. The source shader is additionally exercised on the
+local Unity Vulkan GPU with both array eyes and UNORM/sRGB at 1x/4x MSAA,
+including the final blit's existing linear-to-sRGB conversion keyword;
+that is not a Windows D3D11 or headset test.
+
+## Opt-in Battles/Demeo adapter test
 
 Update the mod **and** game-local adapter with `scripts/install.ps1`, close the
 game, and edit `BepInEx/config/DemeoMixedReality.cfg` (MelonLoader: the mod INI):
@@ -48,9 +81,10 @@ Backend=Auto
 OpenXRAlpha=true
 ```
 
-Restart the game: the native adapter reads this option at startup. This diagnostic
-is only implemented in the Demeo/Battles adapter, not Battlemarked's Unity OpenXR
-provider or original-OpenVR LegacyCompanion. Leave it off for normal gameplay.
+Restart the game: the native adapter reads this option at startup. This version
+of the diagnostic belongs to the Demeo/Battles adapter; Battlemarked uses the
+Unity path above. Original-OpenVR LegacyCompanion has no test strip. Leave
+diagnostics off for normal gameplay.
 It does not change any SteamVR setting, companion, device, shader or game material.
 
 Once native alpha has actually been accepted, a head-relative six-cell strip

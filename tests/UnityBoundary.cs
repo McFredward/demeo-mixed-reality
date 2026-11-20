@@ -188,12 +188,12 @@ namespace UnityEngine
         public int passCount=2;
         public Shader shader;
         public Color color; public int renderQueue;
-        public Material(Shader shader) { this.shader=shader; if(shader.name=="Hidden/Demeo/NativeFade") passCount=1; }
+        public Material(Shader shader) { this.shader=shader; if(shader.name=="Hidden/Demeo/NativeFade" || shader.name=="Hidden/Demeo/AlphaDiagnostics") passCount=1; }
         public Material(Material source) { shader=source.shader; color=source.color; renderQueue=source.renderQueue; }
         public bool HasProperty(string name) => true;
         public void SetFloat(string name,float value) { }
         public float GetFloat(string name) => 0;
-        public int FindPass(string name) => name=="RESET" || name=="ROOM_FADE" ? 0 : 1;
+        public int FindPass(string name) => name=="RESET" || name=="ROOM_FADE" || name=="ALPHA_TEST_STRIP" ? 0 : 1;
     }
     public class MeshRenderer : Component { public Material sharedMaterial; public Material[] sharedMaterials => new[] { sharedMaterial }; }
     public class Shader : Object { public bool isSupported=true; }
@@ -207,7 +207,7 @@ namespace UnityEngine
         public T LoadAsset<T>(string name) where T : Object => (T)LoadAsset(name,typeof(T));
         public Object LoadAsset(string name, Type type)
         {
-            var shader=new Shader { name=name=="assets/nativefade.shader" ? "Hidden/Demeo/NativeFade" : "Hidden/Demeo/NativeCoverage" };
+            var shader=new Shader { name=name=="assets/alphadiagnostics.shader" ? "Hidden/Demeo/AlphaDiagnostics" : name=="assets/nativefade.shader" ? "Hidden/Demeo/NativeFade" : "Hidden/Demeo/NativeCoverage" };
             Shaders.Add(shader);if(!Loaded.Contains(this))Loaded.Add(this);return shader;
         }
         public void Unload(bool all) { if(all)foreach(var shader in Shaders)Destroy(shader);Destroy(this); }
@@ -229,7 +229,7 @@ namespace UnityEngine
 }
 namespace UnityEngine.Experimental.Rendering
 {
-    public class XRPass { public int multipassId { get; set; }=1; }
+    public class XRPass { public int multipassId { get; set; }=1; public bool enabled { get; set; }=true; }
     public enum GraphicsFormat { R8G8B8A8_UNorm, B8G8R8A8_UNorm, Other, R8G8B8A8_SRGB, B8G8R8A8_SRGB }
     public static class XRSystem
     {
@@ -339,6 +339,7 @@ namespace UnityEngine.Rendering.Universal
     public class UniversalCameraData
     {
         public UnityEngine.Camera camera { get; set; }
+        public bool resolveFinalTarget { get; set; }=true;
         public UnityEngine.Experimental.Rendering.XRPass xr { get; set; }=new UnityEngine.Experimental.Rendering.XRPass();
     }
     public class UniversalRenderPipelineAsset : UnityEngine.Rendering.RenderPipelineAsset
@@ -500,9 +501,12 @@ namespace UnityEngine.Rendering.Universal.Internal
 {
     public class FinalBlitPass
     {
-        public class PassData { public bool enableAlphaOutput; }
+        public class PassData { public bool enableAlphaOutput; public bool requireSrgbConversion; }
         public static void ExecutePass(RasterCommandBuffer cmd,PassData data,RTHandle source,RTHandle destination,UniversalCameraData camera)
-            => HarmonyLib.Harmony.FinalPostfix?.Invoke(null,new object[]{data,source,camera});
+        {
+            var hook=HarmonyLib.Harmony.FinalPostfix;
+            if (hook!=null) hook.Invoke(null,hook.GetParameters()[0].Name=="__0" ? new object[]{cmd,data,camera} : new object[]{data,source,camera});
+        }
     }
     public class DrawObjectsPass
     {

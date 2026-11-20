@@ -134,7 +134,7 @@ namespace GreenScreen
                     + (ActivePath.Length == 0 ? "no INI found; using defaults" : ActivePath)
                     + "; LogLevel=" + ModLogging.Level + " (configured=" + next.LogLevel + ", build default=" + ModLogging.BuildDefault
                     + "); Steam Link NativePassthrough=" + next.SteamLinkNativePassthrough + "; Backend=" + next.SteamLinkBackend
-                    + "; OpenXRAlphaDiagnostics=" + next.OpenXRAlphaDiagnostics + " (OpenComposite only; restart required)."
+                    + "; OpenXRAlphaDiagnostics=" + next.OpenXRAlphaDiagnostics + " (restart required for Demeo/Battles adapter)."
                     + (next.SteamLinkNativePassthrough ? " Enabled only after Frame/Steam Link identity is confirmed."
                         : " Virtual Desktop colour-key mode; Steam Link native passthrough is disabled. Set [STEAMLINK] NativePassthrough=true in the config to enable it."));
                 return true;

@@ -21,6 +21,7 @@ def main():
     subprocess.run(["python3", str(ROOT / "scripts/check-refasm.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/check-coverage.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/check-fade.py")], check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/check-alpha-diagnostics.py")], check=True)
     destination = ROOT / "dist"
     destination.mkdir(exist_ok=True)
     channel = os.environ.get("GITHUB_REF_NAME") or subprocess.check_output(

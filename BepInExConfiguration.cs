@@ -64,7 +64,7 @@ namespace GreenScreen
                 _logging = config.Bind("LOGGING", "Level", "Auto", new ConfigDescription("Auto: dev diagnostics; main important messages and errors.",
                     new AcceptableValueList<string>("Auto", "Debug", "Important", "Warning", "Error")));
                 _alphaDiagnostics = config.Bind("DIAGNOSTICS", "OpenXRAlpha", false,
-                    "Demeo/Battles OpenComposite only: show temporary alpha/light test swatches and log bounded RGB/alpha summaries. Off by default; restart the game after changing this option.");
+                    "Show temporary alpha/light test swatches. Battlemarked: Unity final-blit strip, no GPU readback. Demeo/Battles: OpenComposite strip and bounded RGB/alpha summaries. Off by default; restart the game after changing this option.");
                 if (created && imported != null)
                 {
                     _r.Value = (int)Math.Round(imported.BackgroundColor.r * 255);

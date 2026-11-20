@@ -18,8 +18,10 @@
     <Compile Include="../OpenXrSubmission.cs;OpenXrSubmissionChecks.cs" />
     <Compile Include="../SteamVrAlpha.cs;SteamVrAlphaChecks.cs" />
     <Compile Include="../OpenCompositeAlpha.cs" />
+    <Compile Include="../UnityAlphaDiagnostics.cs" />
     <Compile Include="../BattlemarkedMenuAtmosphere.cs" />
     <EmbeddedResource Include="../assets/nativecoverage.bundle" LogicalName="GreenScreen.NativeCoverage" />
     <EmbeddedResource Include="../assets/nativefade.bundle" LogicalName="GreenScreen.NativeFade" />
+    <EmbeddedResource Include="../assets/alphadiagnostics.bundle" LogicalName="GreenScreen.AlphaDiagnostics" />
   </ItemGroup>
 </Project>

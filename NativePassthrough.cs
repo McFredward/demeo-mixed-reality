@@ -111,6 +111,7 @@ namespace GreenScreen
             // buffer avoids the old one-second stale-camera window and sorting.
             ScanCameras();
             ModConfiguration settings = ConfigurationStore.Current;
+            UnityAlphaDiagnostics.Tick();
             SteamLinkConnectionLifecycle.Tick(settings.SteamLinkNativePassthrough);
             if (!settings.SteamLinkNativePassthrough || !SteamLinkConnection.Available)
             {
@@ -455,6 +456,7 @@ namespace GreenScreen
             OpenVrOrigin.Reset();
             if (!_started) return;
             _started = false;
+            UnityAlphaDiagnostics.Shutdown();
             SteamVrAlpha.Shutdown();
             DemeoAutomaticRecenter.Shutdown();
             SteamLinkConnectionLifecycle.Reset();

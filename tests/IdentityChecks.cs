@@ -67,6 +67,14 @@ internal static class IdentityChecks
                         Check(attributeVersion==expected,"loader display version agrees with produced assembly version "+expected+": "+loader+"/"+game);
                     }
                     var assembly=System.Reflection.Assembly.LoadFile(path);
+                    using (var diagnostic=assembly.GetManifestResourceStream("GreenScreen.AlphaDiagnostics"))
+                    using (var bytes=new MemoryStream())
+                    {
+                        Check(diagnostic!=null,"produced mod embeds the owned diagnostic shader: "+loader+"/"+game);
+                        diagnostic.CopyTo(bytes);
+                        Check(bytes.ToArray().SequenceEqual(File.ReadAllBytes("assets/alphadiagnostics.bundle")),
+                            "produced diagnostic shader matches the validated bundle: "+loader+"/"+game);
+                    }
                     foreach (bool dll in new[] { false,true })
                     {
                         string resource=dll ? SteamLinkConnection.ApiResource : SteamLinkConnection.Resource;

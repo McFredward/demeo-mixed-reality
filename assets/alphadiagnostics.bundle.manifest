@@ -1,0 +1,17 @@
+ManifestFileVersion: 0
+CRC: 1796298535
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 25d30777952d99910fdc8c0a7a62eb61
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 1848cfd019ebe6ef89967c6f90f2a3d4
+HashAppended: 0
+ClassTypes:
+- Class: 48
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/AlphaDiagnostics.shader
+Dependencies: []

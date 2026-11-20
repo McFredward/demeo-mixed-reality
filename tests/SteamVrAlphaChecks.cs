@@ -135,6 +135,40 @@ internal static class SteamVrAlphaChecks
             UnityEngine.Rendering.Universal.Internal.DrawObjectsPass.ExecutePass(raster, data, 0, 0, false);
             check(raster.Passes.Count == 2 && camera.backgroundColor == Color.clear,
                 "native mode keeps same-eye opaque depth alpha repair before transparents");
+#if DEMEOBATTLEMARKED
+            check(HarmonyLib.Harmony.FinalPostfix == null,"Battlemarked diagnostics install no hook by default");
+            ConfigurationStore.Current.OpenXRAlphaDiagnostics = true;
+            UnityAlphaDiagnostics.Tick();
+            check(HarmonyLib.Harmony.FinalPostfix != null,"Battlemarked opt-in binds the actual final blit without OpenComposite");
+            var finalData = new UnityEngine.Rendering.Universal.UniversalCameraData { camera = camera };
+            var finalPass = new UnityEngine.Rendering.Universal.Internal.FinalBlitPass.PassData { enableAlphaOutput = true };
+            var finalCommands = new UnityEngine.Rendering.RasterCommandBuffer();
+            int queries = XRDisplaySubsystem.ParameterQueries, reads = AsyncGPUReadback.Requests;
+            UnityEngine.Rendering.Universal.Internal.FinalBlitPass.ExecutePass(finalCommands,finalPass,new RTHandle(),new RTHandle(),finalData);
+            check(finalCommands.Passes.Count == 1 && camera.backgroundColor == Color.clear && SteamVrAlpha.Active,
+                "Battlemarked draws one test strip on its owned final XR attachment without altering native passthrough");
+            check(XRDisplaySubsystem.ParameterQueries == queries && AsyncGPUReadback.Requests == reads,
+                "Battlemarked visual diagnosis never calls unsafe XR out parameters or GPU readback");
+            finalData.resolveFinalTarget = false;
+            UnityEngine.Rendering.Universal.Internal.FinalBlitPass.ExecutePass(finalCommands,finalPass,new RTHandle(),new RTHandle(),finalData);
+            finalData.resolveFinalTarget = true; finalData.xr.enabled = false;
+            UnityEngine.Rendering.Universal.Internal.FinalBlitPass.ExecutePass(finalCommands,finalPass,new RTHandle(),new RTHandle(),finalData);
+            finalData.xr.enabled = true; finalData.camera = new Camera();
+            UnityEngine.Rendering.Universal.Internal.FinalBlitPass.ExecutePass(finalCommands,finalPass,new RTHandle(),new RTHandle(),finalData);
+            check(finalCommands.Passes.Count == 1,"diagnostic refuses intermediates, spectator outputs and other cameras");
+            finalData.camera = camera;
+            Time.frameCount++;
+            UnityEngine.Rendering.Universal.Internal.FinalBlitPass.ExecutePass(finalCommands,finalPass,new RTHandle(),new RTHandle(),finalData);
+            check(finalCommands.Passes.Count == 1,"a stale game frame cannot draw a diagnostic strip");
+            Time.unscaledTime += 121; tick();
+            UnityEngine.Rendering.Universal.Internal.FinalBlitPass.ExecutePass(finalCommands,finalPass,new RTHandle(),new RTHandle(),finalData);
+            check(finalCommands.Passes.Count == 1 && SteamVrAlpha.Active,"120-second timeout removes only test pixels and retains native alpha");
+            ConfigurationStore.Current.OpenXRAlphaDiagnostics = false; UnityAlphaDiagnostics.Tick();
+            check(HarmonyLib.Harmony.FinalPostfix == null,"diagnostic opt-out unpatches and releases only owned assets");
+            AssetBundle.Reject = true; ConfigurationStore.Current.OpenXRAlphaDiagnostics = true; UnityAlphaDiagnostics.Tick();
+            check(HarmonyLib.Harmony.FinalPostfix == null && SteamVrAlpha.Active,"diagnostic asset failure leaves normal native passthrough active");
+            AssetBundle.Reject = false; ConfigurationStore.Current.OpenXRAlphaDiagnostics = false; UnityAlphaDiagnostics.Tick();
+#endif
             configure(false); tick();
             check(!SteamVrAlpha.Active && api.Requested == 1 && camera.backgroundColor == new Color(0, 1, 0, 1),
                 "normal config opt-out restores native blend selection and colour-key camera");

@@ -34,6 +34,7 @@ jobs:
           .build/coverage-checks/bin/pip install --disable-pip-version-check -q -r scripts/coverage-requirements.txt
           .build/coverage-checks/bin/python scripts/check-coverage.py
           .build/coverage-checks/bin/python scripts/check-fade.py
+          .build/coverage-checks/bin/python scripts/check-alpha-diagnostics.py
           if .build/coverage-checks/bin/python scripts/check-coverage.py tests/fixtures/coverage-missing-container.bundle; then
             echo 'Bundle gate accepted missing AssetBundle container' >&2
             exit 1
