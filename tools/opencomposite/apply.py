@@ -77,11 +77,16 @@ VR_INTERFACE bool VR_CALLTYPE VR_GetRuntimePath(char* buffer, uint32_t capacity,
     edit("DrvOpenXR/DrvOpenXR.cpp", "\tcurrentBackend->OnSessionCreated();", "\tdmrSessionCreated(xr_instance, xr_system);\n\tcurrentBackend->OnSessionCreated();")
     edit("DrvOpenXR/DrvOpenXR.cpp", "void DrvOpenXR::ShutdownSession()\n{", "void DrvOpenXR::ShutdownSession()\n{\n\tdmrAlpha.running(false);")
     edit("DrvOpenXR/XrBackend.cpp", '#include "XrBackend.h"', '#include "XrBackend.h"\n#include "dmr_bridge.h"')
+    edit("DrvOpenXR/XrBackend.cpp", "static void find_queue_family_and_queue_idx(", "#ifdef SUPPORT_VK\nstatic void find_queue_family_and_queue_idx(")
+    edit("DrvOpenXR/XrBackend.cpp", "/* Submitting Frames */", "#endif\n\n/* Submitting Frames */")
     edit("DrvOpenXR/XrBackend.cpp", "void XrBackend::WaitForTrackingData()\n{", "void XrBackend::WaitForTrackingData()\n{\n\tdmrAlpha.beginFrame();")
     # First graphics-API handoff starts a *new* session. Begin its frame before
     # copying either eye, rather than presenting an uninitialized first image.
     path = root / "DrvOpenXR/XrBackend.cpp"
     text = path.read_text()
+    start = text.index("\t\tcase vr::TextureType_Vulkan: {")
+    end = text.index("\t\tcase vr::TextureType_OpenGL:", start)
+    text = text[:start] + '\t\tcase vr::TextureType_Vulkan: {\n\t\t\tOOVR_ABORT("The Demeo OpenXR adapter requires Direct3D 11.");\n\t\t\tbreak;\n\t\t}\n' + text[end:]
     start = text.index("\t// If WaitGetPoses was called before the first texture was submitted")
     end = text.index("\n}\n\nvoid XrBackend::SubmitFrames", start)
     deferred = text[start:end]
