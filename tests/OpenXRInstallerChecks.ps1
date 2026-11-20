@@ -42,6 +42,10 @@ try {
     $repeat=Get-DemeoOpenXRPlan $install $payload
     Check $repeat.Unchanged 'Identical reinstall is a no-op'
     Install-DemeoOpenXRAdapter $repeat
+    $melon=Get-DemeoOpenXRPlan $install $payload -LoaderBackend MelonLoader
+    Check (-not $melon.Unchanged) 'Changing selected loader updates startup config selection even with identical native bytes'
+    Install-DemeoOpenXRAdapter $melon
+    Check ((Get-Content $melon.Receipt -Raw | ConvertFrom-Json).loader_backend -eq 'MelonLoader') 'Record the explicitly selected loader for native startup'
     File $target 'steam-game-update-v2'
     $updated=Hash $target
     $update=Get-DemeoOpenXRPlan $install $payload

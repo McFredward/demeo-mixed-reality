@@ -7,6 +7,7 @@
 #include <fstream>
 #include <mutex>
 #include <stdexcept>
+#include "../libs/openxr-sdk/src/external/jsoncpp/include/json/json.h"
 
 dmr::AlphaState dmrAlpha;
 namespace {
@@ -25,12 +26,22 @@ fs::path modulePath(HMODULE module) {
 }
 bool legacyRequested() {
     const auto game = modulePath(nullptr).parent_path();
+    // The source installer can explicitly select MelonLoader even if an old
+    // BepInEx installation/config remains in the same game folder.
+    bool melon = false;
+    const auto receipt = modulePath(openovr_module_id).parent_path() / L"DemeoMixedReality.OpenXR.json";
+    if (fs::is_regular_file(receipt)) {
+        std::ifstream input(receipt); Json::Value record; Json::CharReaderBuilder builder; std::string errors;
+        if (!Json::parseFromStream(builder, input, &record, &errors)) throw std::runtime_error("Demeo MR: invalid XR install receipt");
+        melon = record["loader_backend"].isString() && record["loader_backend"].asString() == "MelonLoader";
+    }
     fs::path config = game / L"BepInEx/config/DemeoMixedReality.cfg";
-    if (!fs::exists(config)) {
+    if (melon || !fs::exists(config)) {
         config = game / L"BepInEx/config/566784.cfg";
-        if (!fs::exists(config)) {
+        if (melon || !fs::exists(config)) {
             config.clear();
             for (const auto& root : { game / L"BepInEx/plugins", game / L"Mods" }) {
+                if (melon && root != game / L"Mods") continue;
                 if (!fs::is_directory(root)) continue;
                 for (const auto& name : { L"greenscreen.ini", L"custom_color.ini" }) {
                     for (const auto& item : fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied)) {

@@ -32,13 +32,18 @@ def main():
     run("cmake", "-S", source, "-B", build, "-A", "x64", "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW",
         "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded", "-DOC_VERSION=DemeoMR-OpenXR-1-" + REVISION[:12])
     run("cmake", "--build", build, "--config", "Release", "--target", "OCOVR", "DMRSmoke", "DMRFakeOriginal", "--parallel", "4")
-    for legacy in (False, True):
-        fixture = build / ("smoke-legacy" if legacy else "smoke-native")
+    for scenario in ("native", "legacy", "legacy-melon"):
+        legacy = scenario != "native"
+        fixture = build / ("smoke-" + scenario)
         plugin = fixture / "demeo_Data/Plugins/x86_64"
         config = fixture / "BepInEx/config/DemeoMixedReality.cfg"
         plugin.mkdir(parents=True)
         config.parent.mkdir(parents=True)
-        config.write_text("[STEAMLINK]\nNativePassthrough=true\nBackend=" + ("LegacyCompanion" if legacy else "Auto") + "\n")
+        config.write_text("[STEAMLINK]\nNativePassthrough=true\nBackend=" + ("LegacyCompanion" if scenario == "legacy" else "Auto") + "\n")
+        if scenario == "legacy-melon":
+            (fixture / "Mods").mkdir()
+            (fixture / "Mods/greenscreen.ini").write_text("[STEAMLINK]\nNativePassthrough=true\nBackend=LegacyCompanion\n")
+            (plugin / "DemeoMixedReality.OpenXR.json").write_text(json.dumps({"schema":"demeo-openxr-install-v1","loader_backend":"MelonLoader"}))
         shutil.copy2(build / "Release/DMRSmoke.exe", fixture / "DMRSmoke.exe")
         shutil.copy2(build / "Release/DMRFakeOriginal.dll", plugin / "openvr_api.dmr-original.dll")
         shutil.copy2(build / "bin/Release/vrclient_x64.dll", plugin / "openvr_api.dll")

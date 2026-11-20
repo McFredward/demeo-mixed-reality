@@ -33,7 +33,8 @@ function Assert-DemeoGameStopped {
 }
 
 function Get-DemeoOpenXRPlan {
-    param([Parameter(Mandatory=$true)]$Install,[Parameter(Mandatory=$true)]$Payload)
+    param([Parameter(Mandatory=$true)]$Install,[Parameter(Mandatory=$true)]$Payload,
+        [ValidateSet('BepInEx','MelonLoader')][string]$LoaderBackend='BepInEx')
     if ($Install.Spec.Id -eq 'DEMEOBATTLEMARKED') { return $null }
     Assert-DemeoGameStopped $Install.Executable
     $directory = Join-Path $Install.Data 'Plugins/x86_64'
@@ -59,8 +60,10 @@ function Get-DemeoOpenXRPlan {
         if (Test-DemeoOpenXRMarker $target) { throw 'An unrecognized Demeo OpenXR adapter has no matching receipt. Restore the original game API in Steam before reinstalling.' }
         $originalHash = $hash
     }
-    [pscustomobject]@{ Install=$Install; Payload=$Payload; Directory=$directory; Target=$target; Backup=$backup; Receipt=$receipt;
-        CurrentHash=$hash; OriginalHash=$originalHash; Owned=[bool]$owned; Unchanged=($hash -eq $Payload.Hash -and $null -ne $previous) }
+    $previousLoader = 'BepInEx'
+    if ($previous -and $previous.PSObject.Properties['loader_backend']) { $previousLoader = $previous.loader_backend }
+    [pscustomobject]@{ Install=$Install; Payload=$Payload; Directory=$directory; Target=$target; Backup=$backup; Receipt=$receipt; LoaderBackend=$LoaderBackend;
+        CurrentHash=$hash; OriginalHash=$originalHash; Owned=[bool]$owned; Unchanged=($hash -eq $Payload.Hash -and $null -ne $previous -and $previousLoader -eq $LoaderBackend) }
 }
 
 function Test-DemeoOpenXRMarker {
@@ -101,7 +104,7 @@ function Install-DemeoOpenXRAdapter {
     try {
         if (-not $Plan.Owned) { Copy-DemeoAtomicFile $Plan.Target $Plan.Backup; $backupChanged=$true }
         Copy-DemeoAtomicFile $Plan.Payload.Binary $Plan.Target; $replaced=$true
-        $record = [ordered]@{ schema='demeo-openxr-install-v1'; installed_sha256=$Plan.Payload.Hash; original_sha256=$Plan.OriginalHash }
+        $record = [ordered]@{ schema='demeo-openxr-install-v1'; installed_sha256=$Plan.Payload.Hash; original_sha256=$Plan.OriginalHash; loader_backend=$Plan.LoaderBackend }
         [IO.File]::WriteAllText($receiptStage,($record | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
         if (Test-Path -LiteralPath $Plan.Receipt) { [IO.File]::Replace($receiptStage,$Plan.Receipt,[NullString]::Value) }
         else { [IO.File]::Move($receiptStage,$Plan.Receipt) }

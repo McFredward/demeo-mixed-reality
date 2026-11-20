@@ -52,7 +52,7 @@ try {
         $nativePlan = $null
         if ($spec.Id -ne 'DEMEOBATTLEMARKED') {
             if (-not $nativePayload) { $nativePayload = Get-DemeoOpenXRPayload (Join-Path $repo 'assets/opencomposite') }
-            $nativePlan = Get-DemeoOpenXRPlan $install $nativePayload
+            $nativePlan = Get-DemeoOpenXRPlan $install $nativePayload -LoaderBackend $resolved.Backend
         }
         $pluginRoot = $resolved.PluginRoot
         $running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
