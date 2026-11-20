@@ -15,7 +15,7 @@ def apply(root: Path):
             raise RuntimeError(f"Upstream context changed: {name}: {old[:70]!r}")
         path.write_text(text.replace(old, new))
 
-    for name in ("dmr_state.hpp", "dmr_bridge.h", "dmr_bridge.cpp"):
+    for name in ("dmr_state.hpp", "dmr_bridge.h", "dmr_bridge.cpp", "dmr_smoke.cpp", "dmr_fake_original.cpp"):
         shutil.copy2(Path(__file__).parent / name, root / "OpenOVR" / name)
 
     edit("CMakeLists.txt", "set(CMAKE_SYSTEM_VERSION 10.0.17134.0)", "# Use the installed Windows SDK (D3D11-only Demeo adapter).")
@@ -24,6 +24,8 @@ def apply(root: Path):
     edit("CMakeLists.txt", "add_compile_definitions(XR_USE_GRAPHICS_API_OPENGL XR_USE_GRAPHICS_API_VULKAN)", "# Demeo adapter: retain only the D3D11 graphics binding.")
     edit("CMakeLists.txt", "XR_USE_GRAPHICS_API_D3D11 XR_USE_GRAPHICS_API_D3D12", "XR_USE_GRAPHICS_API_D3D11")
     edit("CMakeLists.txt", "OCOVR/openvr_api.cpp\n", "OCOVR/openvr_api.cpp\n\tOpenOVR/dmr_bridge.cpp\n")
+    with (root / "CMakeLists.txt").open("a") as output:
+        output.write("\nadd_executable(DMRSmoke OpenOVR/dmr_smoke.cpp)\nadd_library(DMRFakeOriginal SHARED OpenOVR/dmr_fake_original.cpp)\n")
 
     # Keep public OpenVR calls binary-compatible, including the game provider's
     # actual import table. Explicit LegacyCompanion forwards to the local backup.

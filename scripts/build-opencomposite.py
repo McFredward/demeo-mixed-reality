@@ -31,7 +31,18 @@ def main():
     run(sys.executable, ROOT / "tools/opencomposite/apply.py", source)
     run("cmake", "-S", source, "-B", build, "-A", "x64", "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW",
         "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded", "-DOC_VERSION=DemeoMR-OpenXR-1-" + REVISION[:12])
-    run("cmake", "--build", build, "--config", "Release", "--target", "OCOVR", "--parallel", "4")
+    run("cmake", "--build", build, "--config", "Release", "--target", "OCOVR", "DMRSmoke", "DMRFakeOriginal", "--parallel", "4")
+    for legacy in (False, True):
+        fixture = build / ("smoke-legacy" if legacy else "smoke-native")
+        plugin = fixture / "demeo_Data/Plugins/x86_64"
+        config = fixture / "BepInEx/config/DemeoMixedReality.cfg"
+        plugin.mkdir(parents=True)
+        config.parent.mkdir(parents=True)
+        config.write_text("[STEAMLINK]\nNativePassthrough=true\nBackend=" + ("LegacyCompanion" if legacy else "Auto") + "\n")
+        shutil.copy2(build / "Release/DMRSmoke.exe", fixture / "DMRSmoke.exe")
+        shutil.copy2(build / "Release/DMRFakeOriginal.dll", plugin / "openvr_api.dmr-original.dll")
+        shutil.copy2(build / "bin/Release/vrclient_x64.dll", plugin / "openvr_api.dll")
+        run(fixture / "DMRSmoke.exe", plugin / "openvr_api.dll", "1" if legacy else "0", cwd=fixture)
     args.output.mkdir(parents=True, exist_ok=True)
     binary = args.output / "opencomposite.bin"
     shutil.copy2(build / "bin/Release/vrclient_x64.dll", binary)
@@ -53,7 +64,7 @@ def main():
                "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                "source_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
                "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-               "headset_tested": False}
+               "dll_smoke_tested": True, "headset_tested": False}
     (args.output / "build.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 
