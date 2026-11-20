@@ -20,6 +20,9 @@ unsigned family(DXGI_FORMAT f) {
     if (f == DXGI_FORMAT_B8G8R8A8_TYPELESS || f == DXGI_FORMAT_B8G8R8A8_UNORM || f == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB) return 2;
     return 0;
 }
+void failureLog(DiagnosticLog log, const char* text) noexcept {
+    try { if (log) log(text); } catch (...) { /* Optional logging must not abort XR submission. */ }
+}
 }
 struct DiagnosticProbe::Impl {
     ComPtr<ID3D11Texture2D> pattern, staging;
@@ -140,8 +143,8 @@ void DiagnosticProbe::process(ID3D11DeviceContext* c, ID3D11Texture2D* i, DXGI_F
     try { impl->process(c,i,f,frame,seconds,log); }
     catch (const std::exception& error) {
         impl->failed = true;
-        if (log) { log("DMR alpha probe stopped; normal game submission remains active."); log(error.what()); }
+        failureLog(log,"DMR alpha probe stopped; normal game submission remains active."); failureLog(log,error.what());
     }
-    catch (...) { impl->failed = true; if (log) log("DMR alpha probe stopped after unexpected failure; normal submission remains active."); }
+    catch (...) { impl->failed = true; failureLog(log,"DMR alpha probe stopped after unexpected failure; normal submission remains active."); }
 }
 }

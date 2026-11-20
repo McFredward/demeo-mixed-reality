@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <stdexcept>
 #include <vector>
 
 using Microsoft::WRL::ComPtr;
@@ -16,6 +17,7 @@ static void require(bool value, const char* message) {
 }
 static void checked(HRESULT r) { require(SUCCEEDED(r),"D3D11 fixture operation"); }
 static void logLine(const char* text) { lines.emplace_back(text); }
+static void failingLog(const char*) { throw std::runtime_error("fixture logger unavailable"); }
 static unsigned matching(const char* text) {
     unsigned n=0; for (const auto& line : lines) if (line.find(text) != std::string::npos) ++n; return n;
 }
@@ -95,5 +97,8 @@ int main() {
     failure.process(nullptr,nullptr,DXGI_FORMAT_UNKNOWN,{0,0,0},0,logLine);
     failure.process(nullptr,nullptr,DXGI_FORMAT_UNKNOWN,{0,0,0},1,logLine);
     require(matching("probe stopped")==1,"optional diagnostic failure is contained and logged once");
+    dmr::DiagnosticProbe logFailure;
+    logFailure.process(nullptr,nullptr,DXGI_FORMAT_UNKNOWN,{0,0,0},0,failingLog);
+    require(true,"a failing diagnostic logger cannot abort normal XR submission");
     std::printf("OpenXR diagnostics D3D11 WARP checks passed: %u (four formats, exact GPU pixels, nonblocking snapshots, expiry, no SteamVR/game/device deployment)\n",checks);
 }
