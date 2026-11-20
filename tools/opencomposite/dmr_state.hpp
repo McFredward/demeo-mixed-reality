@@ -3,7 +3,7 @@
 #include <mutex>
 
 namespace dmr {
-enum : uint32_t { Native = 1, Running = 2, SupportsAlpha = 4, SteamVR = 8, PresentedAlpha = 16, Legacy = 32, SystemKnown = 64 };
+enum : uint32_t { None = 0, Native = 1, Running = 2, SupportsAlpha = 4, SteamVR = 8, PresentedAlpha = 16, Legacy = 32, SystemKnown = 64 };
 struct Snapshot {
     uint32_t version = 1, bytes = 24;
     uint64_t generation = 1;
@@ -21,7 +21,7 @@ public:
     Snapshot read() { std::lock_guard lock(gate); return value; }
     void session(bool steamVR, bool alpha) {
         std::lock_guard lock(gate);
-        value.generation++; value.flags = Native | SystemKnown | (steamVR ? SteamVR : 0) | (alpha ? SupportsAlpha : 0);
+        value.generation++; value.flags = Native | SystemKnown | (steamVR ? SteamVR : None) | (alpha ? SupportsAlpha : None);
         value.mode = requested = 1; eyes = 0;
     }
     void running(bool active) {
@@ -49,7 +49,7 @@ public:
         std::lock_guard lock(gate);
         if (frame.generation != value.generation || !success) return;
         value.mode = frame.alpha ? 3 : 1;
-        value.flags = (value.flags & ~PresentedAlpha) | (frame.alpha ? PresentedAlpha : 0);
+        value.flags = (value.flags & ~PresentedAlpha) | (frame.alpha ? PresentedAlpha : None);
         eyes = 0;
     }
 };
