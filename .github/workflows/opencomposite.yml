@@ -1,0 +1,22 @@
+name: Build game-local OpenXR adapter
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths: ['tools/opencomposite/**', 'scripts/build-opencomposite.py', '.github/workflows/opencomposite.yml']
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build pinned OpenComposite and corresponding source archive
+        run: python scripts/build-opencomposite.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Demeo-OpenXR-adapter-${{ github.sha }}
+          path: .build/opencomposite-artifact/*
+          if-no-files-found: error
